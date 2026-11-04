@@ -1,0 +1,259 @@
+{
+  "forms": [
+    {
+      "id": "mov_rr",
+      "opcodes": [
+        "89",
+        "8b"
+      ],
+      "operation": "mov",
+      "shape": "rr",
+      "widths": [
+        32,
+        64
+      ]
+    },
+    {
+      "id": "add_rr",
+      "opcodes": [
+        "01",
+        "03"
+      ],
+      "operation": "add",
+      "shape": "rr",
+      "widths": [
+        32,
+        64
+      ]
+    },
+    {
+      "id": "sub_rr",
+      "opcodes": [
+        "29",
+        "2b"
+      ],
+      "operation": "sub",
+      "shape": "rr",
+      "widths": [
+        32,
+        64
+      ]
+    },
+    {
+      "id": "xor_rr",
+      "opcodes": [
+        "31",
+        "33"
+      ],
+      "operation": "xor",
+      "shape": "rr",
+      "widths": [
+        32,
+        64
+      ]
+    },
+    {
+      "id": "cmp_rr",
+      "opcodes": [
+        "39",
+        "3b"
+      ],
+      "operation": "cmp",
+      "shape": "rr",
+      "widths": [
+        32,
+        64
+      ]
+    },
+    {
+      "id": "test_rr",
+      "opcodes": [
+        "85"
+      ],
+      "operation": "test",
+      "shape": "rr",
+      "widths": [
+        32,
+        64
+      ]
+    },
+    {
+      "id": "push_r64",
+      "opcodes": [
+        "50",
+        "51",
+        "52",
+        "53",
+        "54",
+        "55",
+        "56",
+        "57"
+      ],
+      "operation": "push",
+      "shape": "register",
+      "widths": [
+        64
+      ]
+    },
+    {
+      "id": "pop_r64",
+      "opcodes": [
+        "58",
+        "59",
+        "5a",
+        "5b",
+        "5c",
+        "5d",
+        "5e",
+        "5f"
+      ],
+      "operation": "pop",
+      "shape": "register",
+      "widths": [
+        64
+      ]
+    },
+    {
+      "id": "stack_adjust",
+      "opcodes": [
+        "81",
+        "83"
+      ],
+      "operation": "stack",
+      "shape": "rsp_immediate",
+      "widths": [
+        64
+      ]
+    },
+    {
+      "id": "jmp_rel8",
+      "opcodes": [
+        "eb"
+      ],
+      "operation": "jump",
+      "shape": "relative8",
+      "widths": []
+    },
+    {
+      "id": "jmp_rel32",
+      "opcodes": [
+        "e9"
+      ],
+      "operation": "jump",
+      "shape": "relative32",
+      "widths": []
+    },
+    {
+      "id": "jcc_rel8",
+      "opcodes": [
+        "70",
+        "71",
+        "72",
+        "73",
+        "74",
+        "75",
+        "76",
+        "77",
+        "78",
+        "79",
+        "7a",
+        "7b",
+        "7c",
+        "7d",
+        "7e",
+        "7f"
+      ],
+      "operation": "branch",
+      "shape": "relative8",
+      "widths": []
+    },
+    {
+      "id": "jcc_rel32",
+      "opcodes": [
+        "0f80",
+        "0f81",
+        "0f82",
+        "0f83",
+        "0f84",
+        "0f85",
+        "0f86",
+        "0f87",
+        "0f88",
+        "0f89",
+        "0f8a",
+        "0f8b",
+        "0f8c",
+        "0f8d",
+        "0f8e",
+        "0f8f"
+      ],
+      "operation": "branch",
+      "shape": "relative32",
+      "widths": []
+    },
+    {
+      "id": "nop",
+      "opcodes": [
+        "90"
+      ],
+      "operation": "nop",
+      "shape": "fixed",
+      "widths": []
+    },
+    {
+      "id": "ret",
+      "opcodes": [
+        "c3"
+      ],
+      "operation": "ret",
+      "shape": "fixed",
+      "widths": []
+    },
+    {
+      "id": "cld",
+      "opcodes": [
+        "fc"
+      ],
+      "operation": "cld",
+      "shape": "fixed",
+      "widths": []
+    },
+    {
+      "id": "std",
+      "opcodes": [
+        "fd"
+      ],
+      "operation": "std",
+      "shape": "fixed",
+      "widths": []
+    },
+    {
+      "feature": "cpuid",
+      "id": "cpuid",
+      "opcodes": [
+        "0fa2"
+      ],
+      "operation": "cpuid",
+      "os_requirement": "cpuid_user_enabled",
+      "shape": "fixed",
+      "widths": []
+    }
+  ],
+  "limits": {
+    "contract_bytes": 65536,
+    "function_bytes": 4096,
+    "instructions": 512,
+    "object_bytes": 4194304,
+    "receipt_bytes": 1048576,
+    "relocations": 16384,
+    "sections": 128,
+    "source_bytes": 1048576,
+    "stack_bytes": 512,
+    "states": 512,
+    "steps": 2048,
+    "symbols": 16384,
+    "target_bytes": 16384
+  },
+  "model": "x86-64-sysv-leaf-v1",
+  "schema": "bearbasm-contract-model-v1"
+}

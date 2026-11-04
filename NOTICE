@@ -1,0 +1,58 @@
+Basm — licensing and attribution
+Copyright (c) 2026 F E R M I ∞ H A R T <contact@fermihart.com>
+SPDX-License-Identifier: BSD-3-Clause
+
+Project: https://github.com/FermiHart/basm
+Original project: FermiHart/Beyond_BDM
+
+BSD-3-Clause is the primary license for the current Fermi Hart-authored
+project, including its active build, packaging, tests and documentation,
+except where a file or REUSE.toml identifies a preserved license below.
+LICENSE and LICENSES/BSD-3-Clause.txt contain the complete BSD terms.
+
+Preserved licenses
+------------------
+The foundation module, sign.c, sha256_ni.h, POLITICA-BASM.md and the frozen
+legacy comparison fixture retain their explicit Unlicense
+declarations. LICENSES/Unlicense.txt contains the original terms. Adoption
+of BSD-3-Clause does not withdraw permissions already granted by earlier
+distributions.
+
+LICENSES/LicenseRef-SPL-1.0.txt preserves the Sovereign Public License 1.0
+terms applicable to the external runtime shim and linker script used by
+the sovereign build. Its historical assertions describe an earlier Beyond
+tree and date; they are not a security guarantee for this distribution.
+
+REUSE.toml records the per-file fallbacks and exceptions, including data
+and fixtures whose bytes or line numbers must not be changed by a header.
+Existing per-file declarations take precedence over those fallbacks.
+
+Cryptographic origin
+--------------------
+crypto/ed25519.c and crypto/ed25519.h preserve their declared lineage from
+TweetNaCl v20140427 through SigilOS to Beyond. The original TweetNaCl code
+is public domain. Its upstream contributors are Daniel J. Bernstein,
+Bernard van Gastel, Wesley Janssen, Tanja Lange, Peter Schwabe and Sjaak
+Smetsers. The source comments retain the lineage and credit the original
+implementation; BSD-3-Clause covers Fermi Hart's adaptations and maintenance.
+See LICENSES/LicenseRef-TweetNaCl-Public-Domain.txt for the upstream notice.
+
+Runtime and build tools
+-----------------------
+The sovereign build incorporates the explicitly supplied Beyond blibc
+archive and startup code under Unlicense, plus the Beyond runtime shim
+and linker script under their preserved SPL context. Their identities
+are recorded in the build receipt. These external inputs are not
+relicensed by changing the Basm project license.
+
+NASM is an external test oracle. NASM, host compilers, system libc, Bear
+and BearLinker are not distributed as separate tools in the Basm package.
+
+Source origin
+-------------
+provenance/UPSTREAM.json identifies the Beyond revision from which the
+assembler sources were adapted. It is an origin reference, not a manifest
+of the current tree or a build receipt. The preserved comparison fixture
+quarantine/basm_monolith_legacy.c supports regression and benchmark tools;
+it is not an active assembler input. Current build instructions are in
+docs/BUILD.md.

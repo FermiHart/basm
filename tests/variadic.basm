@@ -1,0 +1,32 @@
+; tests/variadic.basm — regression suite for variadic macros + %rotate + %rep
+bits 64
+section .text
+
+; Variadic macro: 1 required + 0-or-more extra args
+%macro PUSH_REGS 1-*
+    push %1
+    %rotate 1
+    %if %0 > 1
+        push %1
+    %endif
+    %rotate -1
+%endmacro
+
+; Macro with default/rest parameter count
+%macro SET_REGS 2-*
+    mov %1, %2
+%endmacro
+
+; Simple %rep expansion
+%assign i 0
+%rep 4
+    %assign i i + 1
+%endrep
+
+global _start
+_start:
+    PUSH_REGS rax, rbx, rcx
+    SET_REGS rdx, 1
+    SET_REGS rsi, 2
+    mov rax, i
+    ret

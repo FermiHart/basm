@@ -1,0 +1,19 @@
+# Registered BearBasm subset extensions: basm accepts, NASM rejects, by
+# design (same policy as the SKIP lines in tests/run_tests.sh). One path
+# per line, relative to the repo root. A file leaves this list only when
+# its extension is removed or NASM learns it — never silently.
+toolchain/BearBasm/tests/local_labels.basm
+toolchain/BearBasm/tests/regression/test_addressing.basm
+toolchain/BearBasm/tests/regression/test_basic.basm
+toolchain/BearBasm/tests/regression/test_bug07_movzx.basm
+toolchain/BearBasm/tests/regression/test_bug08_lea.basm
+toolchain/BearBasm/tests/regression/test_bug09_jmpfar.basm
+toolchain/BearBasm/tests/regression/test_bug10_call.basm
+toolchain/BearBasm/tests/regression/test_bug11_push.basm
+toolchain/BearBasm/tests/regression/test_bug12_movmem.basm
+toolchain/BearBasm/tests/regression/test_preproc.basm
+toolchain/BearBasm/tests/regression/test_sec03_depth.basm
+toolchain/BearBasm/tests/regression/test_warning_size.basm
+toolchain/BearBasm/tests/regression/test_warning_unused.basm
+toolchain/BearBasm/tests/test_simple_struct.basm
+toolchain/BearBasm/tests/test_structures.basm

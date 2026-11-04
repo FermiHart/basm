@@ -1,0 +1,664 @@
+{
+  "schema": "basm-roadmap-v1",
+  "project": "Basm",
+  "repository": "https://github.com/FermiHart/basm",
+  "version_baseline": "0.1.0-dev.1",
+  "planned_waves": 40,
+  "accepted_waves": 0,
+  "next_wave": "W01",
+  "status": "NOT_STARTED",
+  "scope": "Future assembly, analysis and evidence capabilities. Planned items are not claims about the current implementation.",
+  "compatibility": [
+    "Preserve existing assembler functions, CLI contracts and toolchain consumers.",
+    "Keep new analysis and admission policies optional.",
+    "Keep ordinary assembly independent of new auxiliary tools.",
+    "Record observable evidence before accepting a wave."
+  ],
+  "blocks": [
+    {
+      "id": "B1",
+      "range": [
+        1,
+        10
+      ],
+      "name": "Atestação portátil"
+    },
+    {
+      "id": "B2",
+      "range": [
+        11,
+        20
+      ],
+      "name": "Confiança e política de admissão"
+    },
+    {
+      "id": "B3",
+      "range": [
+        21,
+        30
+      ],
+      "name": "Cadeia objeto→executável→cápsula"
+    },
+    {
+      "id": "B4",
+      "range": [
+        31,
+        40
+      ],
+      "name": "Integração, endurecimento e UX"
+    }
+  ],
+  "milestones": {
+    "W20": "First useful product, subject to acceptance.",
+    "W40": "Integrated candidate, subject to acceptance."
+  },
+  "waves": [
+    {
+      "id": "W01",
+      "block": "B1",
+      "status": "PENDING",
+      "name": "Contrato de evolução e consumidores",
+      "observable_delivery": "Inventário da CLI, funções, formatos, toolchains e consumidores atuais, com contrato de compatibilidade e baseline identificada.",
+      "acceptance_criteria": [
+        "Mapear assembler, elftool, checker de contratos, publicador de gerações e consumidores Beyond; reconciliar comandos documentados com arquivos presentes.",
+        "Fixar o comportamento a preservar, os gates por lane e a fronteira opcional das novidades; registrar falhas e gates não executados sem convertê-los em sucesso."
+      ],
+      "depends_on": []
+    },
+    {
+      "id": "W02",
+      "block": "B1",
+      "status": "PENDING",
+      "name": "Modelo de portabilidade e escopo da evidência",
+      "observable_delivery": "Decisão de projeto sobre identidade de conteúdo, localização dos arquivos e significado de uma verificação portátil.",
+      "acceptance_criteria": [
+        "Especificar consumo offline em outra raiz sem depender do diretório original do produtor.",
+        "Separar integridade, confiança, análise e execução; delimitar os arquivos que cada consumidor precisa receber e o tratamento de ausências."
+      ],
+      "depends_on": [
+        "W01"
+      ]
+    },
+    {
+      "id": "W03",
+      "block": "B1",
+      "status": "PENDING",
+      "name": "Contrato versionado da evidência portátil",
+      "observable_delivery": "Especificação revisável da representação, bytes assinados, versionamento e compatibilidade, antes de implementar o novo formato.",
+      "acceptance_criteria": [
+        "Definir canonicalização, separação de domínios, limites e tratamento de campos desconhecidos, duplicados ou críticos.",
+        "Preservar leitura e comportamento existentes de v2/v3/v4; não permitir downgrade silencioso quando o consumidor exigir o contrato novo."
+      ],
+      "depends_on": [
+        "W01",
+        "W02"
+      ]
+    },
+    {
+      "id": "W04",
+      "block": "B1",
+      "status": "PENDING",
+      "name": "Identidades e resolução de caminhos portáveis",
+      "observable_delivery": "Resolução explícita entre identidades autenticadas e arquivos fornecidos pelo consumidor.",
+      "acceptance_criteria": [
+        "Verificar o mesmo conjunto após mover a raiz, inclusive com espaços e nomes especiais, sem alterar os bytes assinados da prova legada.",
+        "Recusar travessia, colisões e aliases ambíguos conforme o contrato; caminhos físicos do produtor não podem conceder autoridade ao pacote."
+      ],
+      "depends_on": [
+        "W03"
+      ]
+    },
+    {
+      "id": "W05",
+      "block": "B1",
+      "status": "PENDING",
+      "name": "Fechamento das entradas realmente consumidas",
+      "observable_delivery": "Inventário portátil de fonte, includes, incbin e configuração, apoiado nos snapshots já usados pela atestação v4.",
+      "acceptance_criteria": [
+        "Vincular bytes efetivamente lidos, ordem e configuração relevantes; modificar ou omitir uma dependência deve invalidar a verificação exigida.",
+        "Distinguir hashes registrados de propriedades rederivadas; excluir seeds, caches e arquivos alheios ao conjunto autorizado para transporte."
+      ],
+      "depends_on": [
+        "W03",
+        "W04"
+      ]
+    },
+    {
+      "id": "W06",
+      "block": "B1",
+      "status": "PENDING",
+      "name": "Verificador portátil independente e offline",
+      "observable_delivery": "Caminho de verificação externa do contrato portátil, com resultado limitado ao que foi efetivamente conferido.",
+      "acceptance_criteria": [
+        "Um consumidor sem o workspace original deve verificar os membros fornecidos e detectar alteração de um byte, arquivo ausente e ferramenta divergente.",
+        "Verificar assinatura e identidade sobre o mesmo snapshot; não executar conteúdo nem obter confiança automaticamente de uma chave embutida."
+      ],
+      "depends_on": [
+        "W04",
+        "W05"
+      ]
+    },
+    {
+      "id": "W07",
+      "block": "B1",
+      "status": "PENDING",
+      "name": "Transporte e publicação consistentes da evidência",
+      "observable_delivery": "Fluxo opcional para entregar um conjunto completo de artefatos e provas, com regras explícitas de publicação local.",
+      "acceptance_criteria": [
+        "Entregar somente membros declarados e verificar tamanhos e hashes antes de selecionar o conjunto como consumível.",
+        "Falhas de escrita, transporte incompleto e entradas especiais devem produzir recusa clara sem promover um conjunto parcial ou destruir a geração anterior."
+      ],
+      "depends_on": [
+        "W05",
+        "W06"
+      ]
+    },
+    {
+      "id": "W08",
+      "block": "B1",
+      "status": "PENDING",
+      "name": "Migração e reprodutibilidade da portabilidade",
+      "observable_delivery": "Matriz de compatibilidade entre consumidores antigos e novos, com fixtures reproduzíveis em raízes distintas.",
+      "acceptance_criteria": [
+        "Manter bytes, símbolos, relocations e comportamentos documentados do uso antigo; as novidades só alteram fluxos explicitamente selecionados.",
+        "Explicar qualquer diferença legítima de identidade por configuração ou metadata; nunca reescrever uma prova antiga para fazê-la parecer portátil."
+      ],
+      "depends_on": [
+        "W01",
+        "W06",
+        "W07"
+      ]
+    },
+    {
+      "id": "W09",
+      "block": "B1",
+      "status": "PENDING",
+      "name": "Negativos da atestação portátil",
+      "observable_delivery": "Corpus adversarial e relatórios retidos para parsers, resolução e fechamento de dependências.",
+      "acceptance_criteria": [
+        "Cobrir truncamento, duplicação, versões indevidas, hashes inválidos, NUL, symlinks, FIFO, excesso de tamanho e escape de raiz.",
+        "Cada caso deve ter resultado e código de saída verificáveis; crash, timeout ou divergência entre verificadores não contam como recusa correta."
+      ],
+      "depends_on": [
+        "W06",
+        "W07",
+        "W08"
+      ]
+    },
+    {
+      "id": "W10",
+      "block": "B1",
+      "status": "PENDING",
+      "name": "Checkpoint local de atestação portátil",
+      "observable_delivery": "Checkpoint local com especificação, artefatos identificados e evidência consolidada das waves 01–09.",
+      "acceptance_criteria": [
+        "Reproduzir produção e consumo offline em raízes separadas, com positivos e negativos e gates de compatibilidade aplicáveis.",
+        "Registrar SHA local, hashes e limitações; nenhum push, tag ou release decorre automaticamente deste checkpoint."
+      ],
+      "depends_on": [
+        "W09"
+      ]
+    },
+    {
+      "id": "W11",
+      "block": "B2",
+      "status": "PENDING",
+      "name": "Modelo de confiança e responsabilidades",
+      "observable_delivery": "Contrato que separa integridade criptográfica, identidade aprovada, política e propriedades verificadas.",
+      "acceptance_criteria": [
+        "Definir quem escolhe chaves, ferramentas, checker, contrato e target; aprovação não pode derivar de um rótulo dentro do próprio artefato.",
+        "Cobrir prova válida de chave inesperada e recibo não autenticado; manter distintas a assinatura v4 e a autoridade sobre manifesto ou resultado do checker."
+      ],
+      "depends_on": [
+        "W10"
+      ]
+    },
+    {
+      "id": "W12",
+      "block": "B2",
+      "status": "PENDING",
+      "name": "Âncoras externas e identidades permitidas",
+      "observable_delivery": "Mecanismo opcional de seleção de confiança pelo consumidor, definido antes de fixar interface ou armazenamento.",
+      "acceptance_criteria": [
+        "Aceitar somente identidades externamente autorizadas para o papel exigido; chave ausente, incorreta ou fornecida apenas pela prova não satisfaz essa exigência.",
+        "Preservar as interfaces atuais de chave confiável; não embutir seeds, criar identidade oficial de release ou depender de descoberta automática pela rede."
+      ],
+      "depends_on": [
+        "W11"
+      ]
+    },
+    {
+      "id": "W13",
+      "block": "B2",
+      "status": "PENDING",
+      "name": "Contrato da política de admissão",
+      "observable_delivery": "Projeto de política declarativa e limitada para requisitos de evidência, perfil, target e análises opcionais.",
+      "acceptance_criteria": [
+        "Definir regras, composição e defaults sem executar código arbitrário da política; campos ambíguos ou requisitos desconhecidos impedem admissão quando exigidos.",
+        "Ativar a política por escolha explícita do consumidor, preservando a montagem comum e a distinção entre perfil público e compatibilidade Beyond."
+      ],
+      "depends_on": [
+        "W11",
+        "W12"
+      ]
+    },
+    {
+      "id": "W14",
+      "block": "B2",
+      "status": "PENDING",
+      "name": "Identidade da política e ciclo de vida das chaves",
+      "observable_delivery": "Regras para fixar política e verificadores e tratar rotação ou revogação de identidades.",
+      "acceptance_criteria": [
+        "Uma assinatura ainda válida não deve satisfazer uma política que revogou seu signatário; troca de política ou checker deve ser detectável.",
+        "Documentar a autoridade e atualização do estado externo; requisitos de tempo ou frescor precisam de base confiável explícita, sem presumir rede ou relógio."
+      ],
+      "depends_on": [
+        "W12",
+        "W13"
+      ]
+    },
+    {
+      "id": "W15",
+      "block": "B2",
+      "status": "PENDING",
+      "name": "Avaliador e decisões determinísticas",
+      "observable_delivery": "Avaliador opcional com resultado humano e estruturado, razões causais e semântica de saída definida pelo projeto.",
+      "acceptance_criteria": [
+        "Produzir a mesma decisão para os mesmos artefatos, política e âncoras, identificando separadamente integridade, confiança e obrigações de análise.",
+        "Falha de ferramenta, requisito não comprovado ou evidência ausente não pode virar aprovação quando a política os exige."
+      ],
+      "depends_on": [
+        "W13",
+        "W14"
+      ]
+    },
+    {
+      "id": "W16",
+      "block": "B2",
+      "status": "PENDING",
+      "name": "Admissão no publicador existente",
+      "observable_delivery": "Integração opcional ao publicador de gerações, sem substituir o assembler nem retirar interfaces existentes.",
+      "acceptance_criteria": [
+        "Selecionar a nova geração somente após validar os snapshots de objeto, prova e obrigações exigidas pelo consumidor.",
+        "Recusa anterior à seleção deve preservar a geração anterior; retirar o recibo ou o requisito do manifesto não pode contornar a política externa."
+      ],
+      "depends_on": [
+        "W10",
+        "W15"
+      ]
+    },
+    {
+      "id": "W17",
+      "block": "B2",
+      "status": "PENDING",
+      "name": "Recibos auditáveis de decisão",
+      "observable_delivery": "Registro verificável das identidades e razões usadas na decisão de admissão.",
+      "acceptance_criteria": [
+        "Vincular artefato, prova, política, âncoras, checker, contrato e target efetivamente usados, com escopo e propriedades não verificadas explícitos.",
+        "Alterar recibo ou trocar qualquer identidade deve invalidar seu uso; um resultado salvo não substitui revalidação ou autenticação definida pelo contrato."
+      ],
+      "depends_on": [
+        "W15",
+        "W16"
+      ]
+    },
+    {
+      "id": "W18",
+      "block": "B2",
+      "status": "PENDING",
+      "name": "Frescor, rollback e concorrência da admissão",
+      "observable_delivery": "Política opcional de atualização com estado externo confiável e regras de concorrência e recuperação.",
+      "acceptance_criteria": [
+        "Quando exigido, rejeitar uma geração antiga ainda assinada conforme a regra aprovada de frescor; não deduzir novidade da assinatura.",
+        "Testar concorrentes e interrupções no avanço de estado: nenhuma seleção parcial ou aprovação incompatível com o estado confiável pode ser publicada."
+      ],
+      "depends_on": [
+        "W14",
+        "W16",
+        "W17"
+      ]
+    },
+    {
+      "id": "W19",
+      "block": "B2",
+      "status": "PENDING",
+      "name": "Negativos de confiança e política",
+      "observable_delivery": "Campanha adversarial de signatário, política, recibos e seleção de gerações.",
+      "acceptance_criteria": [
+        "Cobrir chave não autorizada, revogação, prova sem assinatura, downgrade, recibo removido, política trocada e manifesto coerente porém sem autoridade.",
+        "Manter logs e resultados dos casos; o fluxo normal sem políticas novas deve continuar atendendo ao contrato fixado na wave 01."
+      ],
+      "depends_on": [
+        "W12",
+        "W15",
+        "W17",
+        "W18"
+      ]
+    },
+    {
+      "id": "W20",
+      "block": "B2",
+      "status": "PENDING",
+      "name": "Marco local: primeiro produto útil",
+      "observable_delivery": "Fluxo documentado de evidência portátil e admissão opcional por confiança e política, pronto para revisão local.",
+      "acceptance_criteria": [
+        "Um consumidor independente deve receber um objeto, conferir sua evidência e aplicar sua própria confiança e política com positivos e recusas reproduzíveis.",
+        "Consolidar waves 01–19, instruções pequenas e limites honestos; o marco não exige a futura cadeia de cápsula nem autoriza publicação remota."
+      ],
+      "depends_on": [
+        "W10",
+        "W19"
+      ]
+    },
+    {
+      "id": "W21",
+      "block": "B3",
+      "status": "PENDING",
+      "name": "Contrato de estágios e derivação",
+      "observable_delivery": "Projeto da cadeia objeto→executável→cápsula, com consumidores e responsabilidades de cada etapa.",
+      "acceptance_criteria": [
+        "Distinguir vínculos de artefatos da cadeia atual do elftool, que relaciona saída anterior à ferramenta seguinte.",
+        "Definir o significado de cápsula e a abrangência das notas e provas existentes; não atribuir garantia de execução ou confinamento a uma prova de objeto."
+      ],
+      "depends_on": [
+        "W20"
+      ]
+    },
+    {
+      "id": "W22",
+      "block": "B3",
+      "status": "PENDING",
+      "name": "Fechamento das entradas da ligação",
+      "observable_delivery": "Captura das entradas realmente usadas pelo linker dentro do recorte de integração aprovado.",
+      "acceptance_criteria": [
+        "Identificar objetos, bibliotecas/membros, scripts, configuração, linker e demais entradas relevantes, preservando ordem quando significativa.",
+        "Entrada não resolvida ou alterada deve impedir a evidência exigida; registrar separadamente BearLinker e a lane host, sem fallback silencioso."
+      ],
+      "depends_on": [
+        "W21"
+      ]
+    },
+    {
+      "id": "W23",
+      "block": "B3",
+      "status": "PENDING",
+      "name": "Evidência do executável final",
+      "observable_delivery": "Registro que vincula os objetos admitidos, a transformação de link e os bytes finais produzidos.",
+      "acceptance_criteria": [
+        "Assinar ou autenticar o escopo definido para a imagem final, incluindo identidade da ferramenta e entradas capturadas.",
+        "Alterar bytes ou substituir a imagem depois do link deve quebrar a verificação; falha de ligação não pode promover uma prova de saída incompleta."
+      ],
+      "depends_on": [
+        "W20",
+        "W22"
+      ]
+    },
+    {
+      "id": "W24",
+      "block": "B3",
+      "status": "PENDING",
+      "name": "Verificação independente pós-link",
+      "observable_delivery": "Verificador da imagem final e de sua ligação às entradas, no subconjunto ELF declarado.",
+      "acceptance_criteria": [
+        "Conferir hashes e estruturas relevantes de segmentos, entrypoint, permissões e ranges sem executar o binário.",
+        "Recusar ELF malformado e transformação sem evidência suficiente; validação estrutural não pode ser apresentada como prova funcional ou de segurança de memória."
+      ],
+      "depends_on": [
+        "W21",
+        "W23"
+      ]
+    },
+    {
+      "id": "W25",
+      "block": "B3",
+      "status": "PENDING",
+      "name": "Contratos sobre os bytes finais",
+      "observable_delivery": "Regra explícita de revalidação das propriedades locais do checker após a ligação.",
+      "acceptance_criteria": [
+        "Identificar a função e seus bytes finais; reexecutar a análise suportada ou comprovar a preservação exigida pelo modelo.",
+        "Relocations, remoção de símbolos ou transformações não modeladas não herdam aprovação do ET_REL; preservar o piloto atual e seus resultados limitados."
+      ],
+      "depends_on": [
+        "W24"
+      ]
+    },
+    {
+      "id": "W26",
+      "block": "B3",
+      "status": "PENDING",
+      "name": "Contrato e fechamento da cápsula",
+      "observable_delivery": "Especificação do conteúdo, configuração, consumidor e identidade da cápsula antes de escolher seu formato.",
+      "acceptance_criteria": [
+        "Definir executável, recursos, dependências e metadata relevantes à identidade e às obrigações do consumidor.",
+        "Distinguir o pacote verificável de garantias do loader ou ambiente; definir limites e resolução segura sem pressupor um formato ou isolamento já existente."
+      ],
+      "depends_on": [
+        "W21",
+        "W24",
+        "W25"
+      ]
+    },
+    {
+      "id": "W27",
+      "block": "B3",
+      "status": "PENDING",
+      "name": "Empacotamento e evidência da cápsula",
+      "observable_delivery": "Empacotamento opcional do conteúdo declarado e vínculo autenticado com o executável verificado.",
+      "acceptance_criteria": [
+        "Obter identidade reproduzível conforme o contrato e detectar remoção, adição indevida ou alteração de membros cobertos.",
+        "Excluir arquivos não declarados e segredos; falha ou pacote parcial não pode selecionar nova geração nem executar conteúdo implicitamente."
+      ],
+      "depends_on": [
+        "W23",
+        "W26"
+      ]
+    },
+    {
+      "id": "W28",
+      "block": "B3",
+      "status": "PENDING",
+      "name": "Verificação da cadeia completa",
+      "observable_delivery": "Verificador dos vínculos e papéis de confiança de objeto, executável e cápsula.",
+      "acceptance_criteria": [
+        "Validar os artefatos e cada vínculo de derivação segundo a política escolhida externamente pelo consumidor.",
+        "Recusar pai substituído, ligação quebrada, ciclo, identidade duplicada ou assinatura válida para papel diferente; não confundir cadeia de ferramentas e de artefatos."
+      ],
+      "depends_on": [
+        "W20",
+        "W23",
+        "W25",
+        "W27"
+      ]
+    },
+    {
+      "id": "W29",
+      "block": "B3",
+      "status": "PENDING",
+      "name": "Consumo local e controlado da cápsula",
+      "observable_delivery": "Integração demonstrável com o consumidor escolhido no contrato, usando fixture benigna revisada.",
+      "acceptance_criteria": [
+        "Separar admissão de execução e demonstrar que o consumidor usa a identidade efetivamente admitida.",
+        "Manter verificações de conteúdo hostil sem executá-lo; distinguir demonstração host de qualificação Beyond/guest e registrar gates indisponíveis."
+      ],
+      "depends_on": [
+        "W28"
+      ]
+    },
+    {
+      "id": "W30",
+      "block": "B3",
+      "status": "PENDING",
+      "name": "Checkpoint local da cadeia de artefatos",
+      "observable_delivery": "Checkpoint com cadeia completa, evidência de cada transformação e limitações por consumidor.",
+      "acceptance_criteria": [
+        "Reproduzir o fluxo objeto→executável→cápsula e as recusas por adulteração em cada etapa, mantendo o produto útil da wave 20.",
+        "Consolidar waves 21–29 com hashes, toolchains e escopos exatos; não promover resultado local a release ou garantia de runtime."
+      ],
+      "depends_on": [
+        "W20",
+        "W29"
+      ]
+    },
+    {
+      "id": "W31",
+      "block": "B4",
+      "status": "PENDING",
+      "name": "Integração de interfaces e toolchains",
+      "observable_delivery": "Matriz integrada dos fluxos antigos e opcionais novos entre assembler, verificadores e consumidores.",
+      "acceptance_criteria": [
+        "Exercitar perfis, formatos, preprocessor, batch, cache, explicações, notas e provas previstos no contrato, preservando bytes e recusas esperadas.",
+        "Identificar cada lane host/soberana e integração Beyond; nenhuma dependência auxiliar nova pode se tornar obrigatória na montagem comum."
+      ],
+      "depends_on": [
+        "W01",
+        "W30"
+      ]
+    },
+    {
+      "id": "W32",
+      "block": "B4",
+      "status": "PENDING",
+      "name": "Entradas hostis e fronteiras de leitura",
+      "observable_delivery": "Corpus integrado para parsers, política, ELF, caminhos e pacotes de evidência.",
+      "acceptance_criteria": [
+        "Cobrir overflow, ambiguidades, NUL, truncamento, arquivos especiais, symlinks, aliases e escape do conjunto autorizado no fluxo opcional.",
+        "Obter recusas limitadas e reproduzíveis sem execução de payloads; conservar o escopo real do assembler, que não é uma sandbox para projetos hostis."
+      ],
+      "depends_on": [
+        "W31"
+      ]
+    },
+    {
+      "id": "W33",
+      "block": "B4",
+      "status": "PENDING",
+      "name": "Limites de recursos e custo observado",
+      "observable_delivery": "Orçamentos explícitos dos caminhos novos e medições comparáveis de custo e regressão.",
+      "acceptance_criteria": [
+        "Medir workloads fixos e conferir seus artefatos antes de comparar tempo, memória, I/O ou tamanho; definir limites com evidência, sem metas inventadas.",
+        "Excesso de recurso deve terminar de modo controlado; preservar os contratos antigos e distinguir custo da montagem do custo das análises opcionais."
+      ],
+      "depends_on": [
+        "W31",
+        "W32"
+      ]
+    },
+    {
+      "id": "W34",
+      "block": "B4",
+      "status": "PENDING",
+      "name": "Falhas de I/O e recuperação transacional",
+      "observable_delivery": "Evidência de recuperação dos fluxos de publicação, admissão, transporte e instalação afetados.",
+      "acceptance_criteria": [
+        "Injetar escrita curta, falta de espaço, permissões e interrupções nos pontos relevantes; verificar bytes, seleção e recuperação após nova invocação.",
+        "Distinguir falha anterior e posterior ao ponto de publicação; não prometer atomicidade universal, filesystem de rede ou perda de energia sem qualificação específica."
+      ],
+      "depends_on": [
+        "W18",
+        "W27",
+        "W31",
+        "W32"
+      ]
+    },
+    {
+      "id": "W35",
+      "block": "B4",
+      "status": "PENDING",
+      "name": "Segredos e privacidade da proveniência",
+      "observable_delivery": "Revisão verificável dos conteúdos exportados, recibos e diagnósticos.",
+      "acceptance_criteria": [
+        "Testar sentinelas para impedir inclusão de seeds, arquivos não declarados e caminhos privados desnecessários em pacotes ou logs novos.",
+        "Preservar a integridade das provas legadas e a proveniência da criptografia; chaves sintéticas não podem ser promovidas a identidade oficial de release."
+      ],
+      "depends_on": [
+        "W31",
+        "W32",
+        "W34"
+      ]
+    },
+    {
+      "id": "W36",
+      "block": "B4",
+      "status": "PENDING",
+      "name": "UX de inspeção e decisão",
+      "observable_delivery": "Ajuda e receitas pequenas para montagem, evidência e admissão, com detalhes avançados opcionais.",
+      "acceptance_criteria": [
+        "Distinguir claramente integridade, signatário, política, propriedades modeladas e execução nas mensagens e recibos.",
+        "Validar exemplos e automação com espaços, nomes iniciados por hífen, saídas estruturadas e falhas; preservar opções existentes e evitar obrigatoriedade das novidades."
+      ],
+      "depends_on": [
+        "W20",
+        "W30",
+        "W31"
+      ]
+    },
+    {
+      "id": "W37",
+      "block": "B4",
+      "status": "PENDING",
+      "name": "Empacotamento e reprodução por terceiros",
+      "observable_delivery": "Pacotes fonte e binários com identidades, dependências opcionais e instalação/removal verificáveis.",
+      "acceptance_criteria": [
+        "Reproduzir a lane declarada a partir do pacote fonte isolado, sem depender de arquivos privados ou checkout Git não incluído.",
+        "Conferir allowlists, manifestos, hashes e avisos existentes; instalação e remoção devem preservar arquivos alheios e não ampliar plataformas declaradas sem teste."
+      ],
+      "depends_on": [
+        "W33",
+        "W34",
+        "W35",
+        "W36"
+      ]
+    },
+    {
+      "id": "W38",
+      "block": "B4",
+      "status": "PENDING",
+      "name": "Qualificação integrada do candidato",
+      "observable_delivery": "Relatório consolidado dos gates aplicáveis sobre snapshots exatos dos binários e fontes candidatos.",
+      "acceptance_criteria": [
+        "Executar regressões e comparações independentes do subconjunto comum, além dos testes de evidência, confiança, cadeia e recuperação.",
+        "Gates obrigatórios ausentes, crashes, alertas de sanitizador e artefatos faltantes não podem virar sucesso; separar evidência host, soberana e Beyond."
+      ],
+      "depends_on": [
+        "W31",
+        "W32",
+        "W33",
+        "W34",
+        "W35",
+        "W36",
+        "W37"
+      ]
+    },
+    {
+      "id": "W39",
+      "block": "B4",
+      "status": "PENDING",
+      "name": "Revisão independente e prontidão operacional",
+      "observable_delivery": "Revisão independente do candidato, seus contratos, evidências e procedimentos de falha ou atualização.",
+      "acceptance_criteria": [
+        "Um revisor deve reproduzir os resultados relevantes com as identidades publicadas no checkpoint local, sem aceitar rótulos de aprovação como autoridade.",
+        "Resolver bloqueios de código incorreto aceito, admissão forjada, perda de dados e quebra de compatibilidade; documentar limites e pendências não bloqueantes."
+      ],
+      "depends_on": [
+        "W38"
+      ]
+    },
+    {
+      "id": "W40",
+      "block": "B4",
+      "status": "PENDING",
+      "name": "Marco local: candidato integrado",
+      "observable_delivery": "Checkpoint final do candidato integrado, com artefatos, contratos, relatórios e continuidade registrados.",
+      "acceptance_criteria": [
+        "Aceitar as waves 01–39 somente com evidências correspondentes e demonstrar o fluxo integrado preservando a montagem simples e as análises opcionais.",
+        "Fixar revisão e hashes locais, limitações e pendências; manter publicação remota pausada até liberação explícita do usuário."
+      ],
+      "depends_on": [
+        "W10",
+        "W20",
+        "W30",
+        "W39"
+      ]
+    }
+  ]
+}

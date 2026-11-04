@@ -1,0 +1,38 @@
+; TEST-09: Preprocessor features
+; Verify %define, %macro, %if work correctly
+
+BITS 32
+org 0x1000
+section .text
+
+; Test %define
+%define MAGIC 0xDEADBEEF
+%define SIZE 256
+
+mov eax, MAGIC
+mov ecx, SIZE
+
+; Test %macro
+%macro PUSH_REGS 2
+    push %1
+    push %2
+%endmacro
+
+PUSH_REGS eax, ebx
+PUSH_REGS ecx, edx
+
+; Test %if
+%define ENABLE_FEATURE 1
+
+%if ENABLE_FEATURE
+mov eax, 1
+%else
+mov eax, 0
+%endif
+
+; Test %assign
+%assign counter 0
+%assign counter counter+1
+%assign counter counter+1
+
+mov ebx, counter

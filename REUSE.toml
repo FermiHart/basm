@@ -1,0 +1,31 @@
+# Copyright (c) 2026 F E R M I ∞ H A R T <contact@fermihart.com>
+# SPDX-License-Identifier: BSD-3-Clause
+version = 1
+
+# Fallback for current own-source files and formats that cannot safely
+# carry a comment header. Per-file license/copyright notices win.
+[[annotations]]
+path = "**"
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 F E R M I ∞ H A R T <contact@fermihart.com>"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+# Explicit public-domain dedications remain in force.
+[[annotations]]
+path = [
+  "modules/01_foundation.inc",
+  "sign.c",
+  "sha256_ni.h",
+  "POLITICA-BASM.md",
+  "quarantine/basm_monolith_legacy.c",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 F E R M I ∞ H A R T <contact@fermihart.com>"
+SPDX-License-Identifier = "Unlicense"
+
+# BSD covers the adaptations; it does not reclaim TweetNaCl's public domain.
+[[annotations]]
+path = ["crypto/ed25519.c", "crypto/ed25519.h"]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 F E R M I ∞ H A R T <contact@fermihart.com> (adaptations and maintenance)"
+SPDX-License-Identifier = "BSD-3-Clause AND LicenseRef-TweetNaCl-Public-Domain"

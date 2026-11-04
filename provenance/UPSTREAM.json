@@ -1,0 +1,11 @@
+{
+  "schema": "basm-origin-v1",
+  "project": "Basm",
+  "repository": "https://github.com/FermiHart/basm",
+  "source_repository": "https://github.com/FermiHart/Beyond_BDM",
+  "source_commit": "aaa029a1a8e53ad31d3da84c824bd6d96f5b10ec",
+  "source_tree": "0480638c54ad1a3497cbcf32a5818799aa9a269d",
+  "source_path": "toolchain/BearBasm",
+  "scope": "Origin reference for adapted assembler sources; not a manifest of the current tree or evidence of the inputs consumed by a build.",
+  "licensing": "See LICENSE, NOTICE, REUSE.toml and LICENSES for current terms and preserved origin notices."
+}

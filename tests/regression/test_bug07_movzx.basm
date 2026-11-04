@@ -1,0 +1,22 @@
+; TEST-02: BUG-07 - movzx/movsx size keywords
+; Verify explicit size keywords work correctly
+
+BITS 32
+org 0x1000
+section .text
+
+; movzx with explicit byte size
+movzx eax, byte [0x2000]
+movzx ebx, byte [0x2001]
+
+; movzx with explicit word size
+movzx ecx, word [0x3000]
+movzx edx, word [0x3002]
+
+; movsx with explicit byte size
+movsx eax, byte [0x4000]
+movsx ebx, byte [0x4001]
+
+; movsx with explicit word size
+movsx ecx, word [0x5000]
+movsx edx, word [0x5002]

@@ -1,0 +1,12 @@
+; TEST-08: SEC-03 - recursion depth limit
+; Verify deep recursion is caught
+
+BITS 32
+org 0x1000
+section .text
+
+; This should work (moderate nesting)
+mov eax, ((((((((((1+2))))))))))
+
+; This should also work
+mov ebx, (1+(2+(3+(4+5))))

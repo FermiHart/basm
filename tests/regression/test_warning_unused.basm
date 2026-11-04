@@ -1,0 +1,23 @@
+; TEST-11: UPG-05 - Warning system
+; Test unused label detection
+
+BITS 32
+org 0x1000
+section .text
+
+; This label is used - should NOT warn
+used_label:
+    mov eax, 1
+    jmp end
+
+; This label is NOT used - should warn
+unused_label:
+    mov ebx, 2
+
+; Another used label
+end:
+    ret
+
+; Another unused label - should warn
+another_unused:
+    nop

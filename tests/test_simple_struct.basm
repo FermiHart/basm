@@ -1,0 +1,14 @@
+; Simple structure test
+BITS 64
+section .text
+
+struc simple
+    a resb 1
+    b resb 1
+endstruc
+
+global test
+test:
+    mov eax, simple.a
+    mov ebx, simple.b
+    mov ecx, simple_size

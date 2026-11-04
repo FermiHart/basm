@@ -1,0 +1,46 @@
+SOVEREIGN PUBLIC LICENSE
+Version 1.0 — July 2026
+
+Copyright (c) 2026 F E R M I ∞ H A R T <contact@fermihart.com>
+
+PREAMBLE (non-operative)
+
+Beyond is a sovereign operating system: every byte of its boot chain is
+attested, every claim about its state is measurable, and its lineage is
+recorded honestly. This license keeps the code as free as the artifact
+is sovereign. Sovereignty is a property of the artifact — an attested
+build chain — never a restriction placed on you. This preamble states
+intent only; the TERMS below are the entire license.
+
+TERMS
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+SPDX identifier for files under this license: LicenseRef-SPL-1.0
+
+THIRD-PARTY NOTICE
+
+None. As of 2026-07-12, zero files in this tree carry third-party
+copyright. This was established by measurement, not declaration: a
+line-level provenance audit of every file with claimed or suspected
+BSD ancestry found no third-party expression remaining (verbatim
+overlap 0-3%, all short generic C idiom; zero distinctive lines).
+Method, numbers and per-file verdicts: Docs/PROVENANCE-AUDIT.md.
+This invariant is enforced mechanically by tools/sov-lock.sh (hard
+gate: any non-authorial "Copyright (c)" or non-SPL SPDX identifier
+in tracked source fails the build forever).
+
+Heritage note: Beyond records its lineage honestly. "Heritage:"
+comments crediting NetBSD/BSD design DNA throughout the tree are
+attribution of ideas, not license markers. The ed25519/x25519
+primitives are declared ports of TweetNaCl (public domain).

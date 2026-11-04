@@ -1,0 +1,16 @@
+; Contract pilot: exact unsigned maximum with explicit RBX preservation.
+; The C consumer tests the result; the independent checker verifies leaf ABI.
+bits 64
+section .text
+global bb_max_u64:function (bb_max_u64_end - bb_max_u64)
+bb_max_u64:
+    push rbx
+    mov rbx, rdi
+    cmp rbx, rsi
+    jae short .selected
+    mov rbx, rsi
+.selected:
+    mov rax, rbx
+    pop rbx
+    ret
+bb_max_u64_end:

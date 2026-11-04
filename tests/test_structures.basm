@@ -1,0 +1,42 @@
+; Test structure support (struc/istruc)
+; Based on Beyond cpu_ctx structure
+
+BITS 64
+section .text
+
+; Define cpu_ctx structure (from ring0/proc/proc.h)
+struc cpu_ctx
+    r15 resq 1
+    r14 resq 1
+    r13 resq 1
+    r12 resq 1
+    rbp resq 1
+    rbx resq 1
+    rsp resq 1
+endstruc
+
+; Test that constants are defined correctly
+global test_offsets
+test_offsets:
+    mov eax, cpu_ctx.r15    ; Should be 0
+    mov eax, cpu_ctx.r14    ; Should be 8
+    mov eax, cpu_ctx.r13    ; Should be 16
+    mov eax, cpu_ctx.r12    ; Should be 24
+    mov eax, cpu_ctx.rbp    ; Should be 32
+    mov eax, cpu_ctx.rbx    ; Should be 40
+    mov eax, cpu_ctx.rsp    ; Should be 48
+    mov eax, cpu_ctx_size   ; Should be 56
+
+; Test istruc instantiation
+section .data
+global test_ctx
+test_ctx:
+    istruc cpu_ctx
+        at r15, dq 0x15
+        at r14, dq 0x14
+        at r13, dq 0x13
+        at r12, dq 0x12
+        at rbp, dq 0x11
+        at rbx, dq 0x10
+        at rsp, dq 0x09
+    iend

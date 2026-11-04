@@ -1,0 +1,81 @@
+--- a/modules/03_parser.inc
++++ b/modules/03_parser.inc
+@@ -809,9 +809,49 @@
+     return 0;
+ }
+ 
++/* W15 experiment: index newline offsets only after a large source requires a
++ * repeated branch-sizing pass. Tokens and expression values stay ephemeral.
++ * The optimization is optional, capped at 1 MiB, and falls back on allocation
++ * failure. It never indexes deferred include buffers. */
++static const char *g_line_index_source;
++static uint32_t *g_line_index_ends;
++static size_t g_line_index_count;
++static void source_line_index_reset(void) {
++    free(g_line_index_ends); g_line_index_ends=NULL;
++    g_line_index_source=NULL; g_line_index_count=0;
++}
++static void source_line_index_prepare(const char *src) {
++    if (g_line_index_source==src) return;
++    source_line_index_reset();
++    if (!g_sym_gen || !g_branch_ord) return;
++    size_t bytes=strlen(src);
++    if (bytes<16384 || bytes>UINT32_MAX) return;
++    size_t capacity=1024,count=0;
++    uint32_t *ends=malloc(capacity*sizeof(*ends));
++    if (!ends) return;
++    const char *p=src;
++    while (*p) {
++        const char *eol=strchr(p,'\n');
++        const char *end=eol ? eol : src+bytes;
++        if (count==capacity) {
++            if (capacity>=262144) { free(ends); return; }
++            size_t next=capacity*2;
++            uint32_t *grown=realloc(ends,next*sizeof(*ends));
++            if (!grown) { free(ends); return; }
++            ends=grown; capacity=next;
++        }
++        ends[count++]=(uint32_t)(end-src);
++        if (!eol) break;
++        p=eol+1;
++    }
++    g_line_index_source=src; g_line_index_ends=ends; g_line_index_count=count;
++}
++
+ /* Process a single source buffer (used for main file and includes) */
+ static void process_source(char *src) {
+     char *p = src;
++    const uint32_t *line_ends=g_line_index_source==src ? g_line_index_ends : NULL;
++    size_t line_index=0;
+     /* Per-source buffer for tokenization.  Allocated once per source to avoid
+      * the StackAddressEscape warning that a fixed stack buffer would trigger
+      * when g_tok points into it; lifetime is exactly this function call. */
+@@ -822,7 +862,11 @@
+         if(g_explain)intent_location_expanded(g_line);
+         g_intent_form_current=NULL; g_intent_instruction=0; g_intent_prefix=0;
+         int trace_section=g_cur, trace_start=cur_off();
+-        char *eol = strchr(p, '\n');
++        char *eol;
++        if (line_ends && line_index<g_line_index_count) {
++            char *end=src+line_ends[line_index++];
++            eol=*end=='\n' ? end : NULL;
++        } else eol=strchr(p,'\n');
+         int len = checked_source_line_len(p, eol);
+         memcpy(buf, p, len); buf[len] = 0;
+         g_data_source=p;
+@@ -943,6 +987,7 @@
+ }
+ 
+ static void assemble_pass(char *src) {
++    source_line_index_prepare(src);
+     intent_trace_reset_pass();
+     file_spans_reset();
+     g_sym_gen++; /* INV-578: same-generation redefinition is a duplicate. */
+@@ -975,6 +1020,7 @@
+     g_file = "<stdin>";
+     expr_cache_reset();
+     process_source(src);
++    if (g_pass==2 || !g_branch_ord) source_line_index_reset();
+     if (g_if_depth) die("unterminated assembly conditional");
+     if (g_in_struc) die("unterminated structure");
+     if (g_istruc_depth) die("unterminated istruc");

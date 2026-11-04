@@ -1,0 +1,23 @@
+; Copyright (c) 2026 F E R M I ∞ H A R T <contact@fermihart.com>
+; SPDX-License-Identifier: BSD-3-Clause
+; Hello from BearBasm! — Linux x86-64, no runtime library.
+bits 64
+
+section .text
+global _start
+_start:
+    mov eax, 1
+    mov edi, 1
+    lea rsi, [rel message]
+    mov edx, message_len
+    syscall
+
+    mov eax, 60
+    xor edi, edi
+    syscall
+
+section .rodata
+message: db "Hello from BearBasm!", 10
+message_len equ $ - message
+
+section .note.GNU-stack noalloc noexec nowrite progbits

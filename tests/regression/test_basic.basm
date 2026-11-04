@@ -1,0 +1,37 @@
+; TEST-01: Basic instruction encoding
+; Tests fundamental x86 instructions
+
+BITS 32
+org 0x1000
+section .text
+
+; Basic MOV operations
+mov eax, 0x12345678
+mov ebx, eax
+mov ecx, 0xFF
+
+; ALU operations
+add eax, ebx
+sub ecx, 10
+and eax, 0xFF
+or ebx, 0x10
+xor ecx, ecx
+
+; Memory operations
+mov [0x2000], eax
+mov ebx, [0x3000]
+mov dword [0x4000], 0xDEADBEEF
+
+; Stack operations
+push eax
+push 0x42
+pop ebx
+
+; Control flow
+jmp .target
+nop
+.target:
+call .func
+ret
+.func:
+ret

@@ -1,0 +1,12 @@
+; Checked for ABI and declared CPUID requirements, never executed by the tests.
+bits 64
+section .text
+global bb_cpuid_leaf:function (bb_cpuid_leaf_end - bb_cpuid_leaf)
+bb_cpuid_leaf:
+    push rbx
+    xor eax, eax
+    xor ecx, ecx
+    cpuid
+    pop rbx
+    ret
+bb_cpuid_leaf_end:

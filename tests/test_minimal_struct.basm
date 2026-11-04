@@ -1,0 +1,11 @@
+; Minimal structure test
+BITS 64
+section .text
+
+struc test_struct
+    field1 resb 1
+endstruc
+
+global _start
+_start:
+    mov eax, test_struct_size

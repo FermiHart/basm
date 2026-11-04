@@ -1,0 +1,11 @@
+/build/
+/dist/
+*.o
+*.tmp
+__pycache__/
+*.pyc
+/basm
+/basm-public
+/elftool
+/test_sha
+/test_sign

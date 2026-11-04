@@ -1,0 +1,25 @@
+; Author: F E R M I ∞ H A R T <contact@fermihart.com>
+; SPDX-FileCopyrightText: 2026 F E R M I ∞ H A R T <contact@fermihart.com>
+; SPDX-License-Identifier: BSD-3-Clause
+
+; INV-396: Linux x86-64 process entry, assembled only by BearBasm.
+BITS 64
+section .text
+global _start
+extern bear_start_main
+extern bear_osif_exit
+
+_start:
+    xor     rbp, rbp
+    mov     rdi, [rsp]
+    lea     rsi, [rsp+8]
+    mov     rax, rdi
+    inc     rax
+    shl     rax, 3
+    lea     rdx, [rsi+rax]
+    and     rsp, -16
+    call    bear_start_main
+    movsx   rdi, eax
+    call    bear_osif_exit
+.halt:
+    jmp     .halt

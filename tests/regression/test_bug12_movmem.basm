@@ -1,0 +1,22 @@
+; TEST-07: BUG-12 - mov [mem], imm resolve labels in bin
+; Verify mov dword [mem], label resolves correctly
+
+BITS 32
+org 0x1000
+section .text
+
+; mov dword to memory with label
+mov dword [0x2000], label1
+mov dword [0x2004], label2
+
+; mov dword with immediate
+mov dword [0x2008], 0xDEADBEEF
+
+label1:
+nop
+
+label2:
+nop
+
+; Another mov with label
+mov dword [0x200C], label1

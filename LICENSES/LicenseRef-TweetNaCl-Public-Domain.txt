@@ -1,0 +1,17 @@
+TweetNaCl public-domain notice
+
+The original TweetNaCl software is in the public domain.
+
+Upstream project: https://tweetnacl.cr.yp.to/
+Software/version record: https://tweetnacl.cr.yp.to/software.html
+Version identified by the imported Basm source: TweetNaCl 20140427.
+
+The upstream project identifies these contributors:
+Daniel J. Bernstein, Bernard van Gastel, Wesley Janssen, Tanja Lange,
+Peter Schwabe and Sjaak Smetsers.
+
+This notice records the public-domain status stated by the upstream
+project and preserves the origin of the original implementation. It
+does not impose BSD terms on the original public-domain material.
+Fermi Hart's adaptations and project maintenance are supplied under
+BSD-3-Clause, as stated in the current source headers and NOTICE.

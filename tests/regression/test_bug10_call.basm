@@ -1,0 +1,25 @@
+; TEST-05: BUG-10 - call forward label displacement
+; Verify forward calls calculate correct displacement
+
+BITS 32
+org 0x1000
+section .text
+
+; Forward call
+call func1
+nop
+nop
+
+func1:
+ret
+
+; Another forward call
+call func2
+nop
+
+func2:
+call func3
+ret
+
+func3:
+ret

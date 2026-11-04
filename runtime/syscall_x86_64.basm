@@ -1,0 +1,26 @@
+; Author: F E R M I ∞ H A R T <contact@fermihart.com>
+; SPDX-FileCopyrightText: 2026 F E R M I ∞ H A R T <contact@fermihart.com>
+; SPDX-License-Identifier: BSD-3-Clause
+
+; INV-396: Linux x86-64 syscall boundary, assembled only by BearBasm.
+BITS 64
+section .text
+global bear_osif_syscall6
+global bear_osif_exit
+
+bear_osif_syscall6:
+    mov     rax, rdi
+    mov     rdi, rsi
+    mov     rsi, rdx
+    mov     rdx, rcx
+    mov     r10, r8
+    mov     r8, r9
+    mov     r9, [rsp+8]
+    syscall
+    ret
+
+bear_osif_exit:
+    mov     rax, 231
+    syscall
+.halt:
+    jmp     .halt

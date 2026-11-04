@@ -1,0 +1,21 @@
+; TEST-03: BUG-08 - lea displacement-only in BITS 32
+; Verify lea with absolute addresses works
+
+BITS 32
+org 0x1000
+section .text
+
+; lea with absolute address (displacement-only)
+lea eax, [0x12345678]
+lea ebx, [0x2000]
+lea ecx, [label1]
+
+; lea with base + displacement
+lea edx, [eax+0x100]
+lea esi, [ebx+0x200]
+
+; lea with base + index + scale + displacement
+lea edi, [eax+ecx*4+0x10]
+
+label1:
+nop

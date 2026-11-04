@@ -1,0 +1,55 @@
+{
+  "abi": "sysv-amd64",
+  "clobbers": [
+    "rax",
+    "rflags"
+  ],
+  "domain": "hosted-user",
+  "function": "bb_max_u64",
+  "max_stack_bytes": 8,
+  "requires": {
+    "features": [
+      "base"
+    ],
+    "os_state": {}
+  },
+  "schema": "bearbasm-contract-v1",
+  "source": {
+    "label": "contracts/examples/max_u64.basm",
+    "locations": [
+      {
+        "line": 7,
+        "offset": 0
+      },
+      {
+        "line": 8,
+        "offset": 1
+      },
+      {
+        "line": 9,
+        "offset": 4
+      },
+      {
+        "line": 10,
+        "offset": 7
+      },
+      {
+        "line": 11,
+        "offset": 9
+      },
+      {
+        "line": 13,
+        "offset": 12
+      },
+      {
+        "line": 14,
+        "offset": 15
+      },
+      {
+        "line": 15,
+        "offset": 16
+      }
+    ],
+    "sha256": "dccfcc00d63ac5ac0334861e2779ee06a8d4436c0e4078dbaacf2c9a630f8b37"
+  }
+}

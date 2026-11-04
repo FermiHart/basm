@@ -1,0 +1,21 @@
+; TEST-04: BUG-09 - jmp far with label in bin format
+; Verify far jumps with labels resolve correctly
+
+BITS 32
+org 0x1000
+section .text
+
+; Far jump with label
+jmp 0x08:target1
+
+target1:
+nop
+
+; Far jump with absolute address
+jmp 0x10:0x2000
+
+; Another far jump with label
+jmp 0x18:target2
+
+target2:
+ret

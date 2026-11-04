@@ -1,0 +1,282 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><meta name="author" content="F E R M I ∞ H A R T &lt;contact@fermihart.com&gt;"><title>BASM — Every build deserves a witness.</title><meta name="description" content="Assembly. Analysis. Evidence you can verify. Watch real Basm assembly and signed object verification."><style>
+ :root{color-scheme:dark;--bg:#080c14;--panel:#101623;--ink:#f5f1df;--muted:#a6afc5;--mint:#65fbd2;--gold:#ffcc66;--line:#263044}
+ *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:90px}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:17px;line-height:1.75}
+ body:before{content:"";position:absolute;inset:0 0 auto;height:840px;background:radial-gradient(ellipse at 70% 10%,#153c3b60,transparent 60%),radial-gradient(ellipse at 12% 8%,#36305240,transparent 50%);pointer-events:none;z-index:-1}
+ .topbar{position:sticky;top:0;z-index:9;background:#080c14e8;backdrop-filter:blur(18px);border-bottom:1px solid #253044aa}.top-inner{max-width:1184px;margin:auto;min-height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;gap:16px}.wordmark{color:var(--ink);text-decoration:none;font-weight:850;letter-spacing:4px;font-size:18px;display:flex;align-items:center;gap:12px}.wordmark svg{width:25px;height:25px}.top-actions{display:flex;align-items:center;gap:23px;font-size:12px;letter-spacing:.8px}.top-actions a{color:#c4cbd9;text-decoration:none}.top-actions .watch{color:var(--mint)}.tiny-tag{font-family:"DejaVu Sans Mono",monospace;font-size:10px;letter-spacing:1px;color:#a6afc5;border:1px solid var(--line);padding:4px 9px;border-radius:100px}
+ main{max-width:1184px;margin:auto;padding:38px 28px 70px}article>p,article>ul,article>ol,article>h2,article>h3,article>pre,article>details,article>.table-wrap{max-width:1010px;margin-left:auto;margin-right:auto}p{margin-top:0;margin-bottom:22px;color:#c4cbd9}strong{font-weight:700;color:var(--ink)}p[align=center]{text-align:center;max-width:none}article>p:first-child{margin-bottom:28px}picture,img{display:block;max-width:100%;height:auto}article>p:first-child img{border-radius:22px;box-shadow:0 28px 90px #0007}h1{font-size:clamp(23px,3.15vw,37px);line-height:1.28;letter-spacing:-.9px;text-align:center;margin:30px 0 20px;font-weight:760}h1+p{font-size:16px;line-height:2.2;margin-bottom:42px}h1+p a{font-size:11px;letter-spacing:1.3px;text-decoration:none}h2{font-size:clamp(26px,3vw,36px);font-weight:750;line-height:1.3;letter-spacing:-.8px;margin-top:70px;margin-bottom:25px;padding-top:26px;border-top:1px solid var(--line)}h3{font-size:23px;line-height:1.4;letter-spacing:-.35px;margin-top:40px;margin-bottom:20px}a{color:var(--mint);text-decoration:underline;text-underline-offset:4px;text-decoration-color:#65fbd24d}a:hover{color:#bbffe9;text-decoration-color:var(--mint)}a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--gold);outline-offset:5px;border-radius:4px}
+ .film{margin:24px 0 20px;padding:6px;background:linear-gradient(120deg,#57e8c45a,#9585d72a,#e4bd5d50);border-radius:18px;box-shadow:0 25px 65px #0005}video{display:block;width:100%;height:auto;aspect-ratio:4/3;background:#080c14;border-radius:12px}.film-mobile{display:none;aspect-ratio:4/5}.film+p a{display:inline-flex;align-items:center;padding:9px 20px;border:1px solid #65fbd24d;border-radius:100px;background:#65fbd20a;font-size:13px;text-decoration:none}.film+p+p{font-size:13px;line-height:1.7;max-width:880px;color:#99a5bd}.film+p+p em{font-style:normal}
+ .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin-top:24px;margin-bottom:30px;background:#0e1420}table{width:100%;border-collapse:collapse;font-size:14px;line-height:1.6}thead{background:#151d2d}th{text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#9eafd0;padding:15px 18px;white-space:nowrap}td{padding:17px 18px;vertical-align:top;color:#c4cbd9;border-top:1px solid #26304480}td:first-child{min-width:142px}td code{white-space:normal}tbody tr:hover{background:#65fbd204}
+ pre{position:relative;background:#0d1421;border:1px solid var(--line);border-left:2px solid #65fbd27a;border-radius:10px;padding:24px 74px 24px 24px;overflow:auto;margin-top:24px;margin-bottom:25px;line-height:1.75;font-size:13px;color:#d7f9eb}code{font-family:"DejaVu Sans Mono",ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.88em;background:#192235;padding:2px 5px;border-radius:4px;color:#d6dff4}pre code{padding:0;border:0;border-radius:0;background:none;color:inherit;font-size:inherit;white-space:pre}.copy{position:absolute;right:12px;top:12px;font:10px "DejaVu Sans Mono",monospace;letter-spacing:.6px;border:1px solid #35415a;color:#afc1d9;background:#151e2f;padding:7px 9px;border-radius:6px;cursor:pointer}.copy:hover{color:var(--mint);border-color:#65fbd270}
+ details{margin-top:32px;margin-bottom:35px;background:#0e1420;border:1px solid var(--line);border-radius:12px;padding:18px 22px;color:#a6b2ca;font-size:14px}summary{cursor:pointer;color:#c5d5ef}details[open] summary{margin-bottom:22px}details p{margin-bottom:16px}details p:last-child{margin-bottom:0}hr{border:0;border-top:1px solid var(--line);max-width:1010px;margin:58px auto 32px}hr+p{font-size:clamp(20px,2.7vw,28px);line-height:1.5;max-width:900px}hr+p+p{letter-spacing:3px;font-size:13px;color:var(--mint);margin-top:28px}hr+p+p a{letter-spacing:0}hr+p+p+p{font-size:12px;color:#8190aa}
+ @media(max-width:680px){body{font-size:16px;line-height:1.7}.top-inner{padding:0 18px;min-height:58px}.top-actions{gap:15px}.tiny-tag{display:none}.top-actions .build{display:none}main{padding:22px 14px 45px}h1{font-size:25px;margin-top:24px;padding:0 8px}h1+p{font-size:14px;line-height:1.9;margin-bottom:32px}h1+p a{font-size:9px;letter-spacing:.8px}p,h2,h3{padding-left:7px;padding-right:7px}h2{margin-top:48px;padding-top:25px;font-size:29px}.film{margin-left:0;margin-right:0;border-radius:12px;padding:3px}video{border-radius:9px}th,td{padding:12px;font-size:12px}th{font-size:10px}td:first-child{min-width:100px}pre{padding:20px 18px; padding-top:48px;font-size:11px}details{padding:16px}.film+p+p{font-size:12px}.wordmark{font-size:16px}article>p:first-child{margin-bottom:23px}}
+ @media(max-width:600px){.film-desktop{display:none}.film-mobile{display:block}}
+ @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+ </style></head><body><nav class="topbar" aria-label="Main navigation"><div class="top-inner"><a class="wordmark" href="#" aria-label="Basm, back to top"><svg viewBox="0 0 26 26" fill="none" aria-hidden="true"><path d="M13 2L23 8V19L13 25L3 19V8L13 2Z" stroke="#65fbd2" stroke-width="1.2"/><path d="M3 8L13 14L23 8M13 14V25" stroke="#65fbd2" stroke-width="1.2"/></svg>BASM</a><div class="top-actions"><span class="tiny-tag">DEVELOPMENT · LINUX X86-64</span><a class="watch" href="#watch-it-build-then-change-one-byte">WATCH IT WORK ↘</a><a class="build" href="#start-with-one-file">BUILD IT</a></div></div></nav><main><article><!-- Copyright (c) 2026, F E R M I ∞ H A R T <contact@fermihart.com> -->
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+
+<p align="center">
+  <picture>
+    <source media="(max-width: 600px)" srcset="readme/hero-basm-mobile.svg">
+    <img src="readme/hero-basm.svg" width="100%" alt="Basm: every build deserves a witness. An original geometric object connects source identity, object identity and a signature key.">
+  </picture>
+</p>
+
+<h1 align="center">BASM — Every build deserves a witness.</h1>
+
+<p align="center">
+  <strong>Assembly. Analysis. Evidence you can verify.</strong><br>
+  <a href="#watch-it-build-then-change-one-byte">WATCH IT WORK</a> ·
+  <a href="#get-the-development-candidate">GET BASM</a> ·
+  <a href="#start-with-one-file">BUILD SOMETHING</a> ·
+  <a href="#what-the-witness-remembers">FOLLOW THE EVIDENCE</a>
+</p>
+
+<p>A program begins as an idea. A few instructions. A decision about what a
+machine should do next.</p>
+<p>Then the source becomes bytes.</p>
+<p>Someone, somewhere, receives the result. <strong>What was built? From which inputs?
+With which tool? Has the object changed?</strong></p>
+<p>Basm brings those questions into the assembly workflow. It builds a documented
+subset of NASM-style x86-64 source into ELF64 objects or flat binaries, offers
+structured inspection, and can emit a signed record that binds the object to
+its consumed inputs, configuration and assembler identity.</p>
+<p><strong>Write the instructions. Build the artifact. Bring the evidence.</strong></p>
+<h2 id="watch-it-build-then-change-one-byte">Watch it build. Then change one byte.</h2>
+<figure class="film" id="film"><video class="film-desktop" controls playsinline preload="metadata" poster="readme/basm-poster.png" aria-label="Real Basm demonstration: build, attest, modify one byte, reject and restore"><source src="readme/basm-in-action.mp4" type="video/mp4"><a href="readme/basm-in-action.mp4">Watch the Basm demonstration</a></video><video class="film-mobile" controls playsinline preload="metadata" poster="readme/basm-poster-mobile.png" aria-label="Portrait Basm demonstration with readable command output"><source src="readme/basm-in-action-mobile.mp4" type="video/mp4"><a href="readme/basm-in-action.mp4">Watch the Basm demonstration</a></video></figure>
+
+<p align="center">
+  <a href="readme/basm-in-action.mp4"><strong>Watch the film — MP4</strong></a> ·
+  <a href="readme/basm-in-action-mobile.mp4">Mobile MP4</a>
+</p>
+
+<p align="center"><em>Real command output, rendered for readability. Typing and
+pauses are edited; this is not a speed benchmark. The demo uses a synthetic test
+key and attests the ELF object. Linking and execution are shown separately.</em></p>
+
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Build it</th>
+<th>Give it a witness</th>
+<th>Put the witness to work</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Assemble, link and run a Linux program</td>
+<td>Emit v4 evidence signed with Ed25519</td>
+<td>Verify against a supplied public key and the selected assembler binary</td>
+</tr>
+</tbody></table></div>
+<p>The original object passes. Change one byte in that same file and verification
+reports an <strong>output hash mismatch</strong>. Restore the exact original bytes and the
+original record passes again.</p>
+<p>A separate negative check supplies the wrong public key. The verifier rejects
+the signer.</p>
+<p><strong>One byte. A different answer.</strong></p>
+<h2 id="get-the-development-candidate">Get the development candidate</h2>
+<p><strong>0.1.0-dev.1 is a development candidate for Linux x86-64.</strong> Choose the
+sovereign binary to use the assembler directly, or the source to build it.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Download</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://github.com/FermiHart/basm/raw/refs/heads/main/downloads/0.1.0-dev.1/bear-basm-0.1.0-dev.1-linux-x86_64.tar.gz">Linux x86-64 binary</a> · <a href="https://github.com/FermiHart/basm/raw/refs/heads/main/downloads/0.1.0-dev.1/bear-basm-0.1.0-dev.1-linux-x86_64.tar.gz.sha256">SHA-256</a></td>
+<td>Public assembler built with Bear, BearLinker and blibc</td>
+</tr>
+<tr>
+<td><a href="https://github.com/FermiHart/basm/raw/refs/heads/main/downloads/0.1.0-dev.1/bear-basm-0.1.0-dev.1-source.tar.gz">Source archive</a></td>
+<td>Build and inspect the source; includes the demonstration</td>
+</tr>
+<tr>
+<td><a href="https://github.com/FermiHart/basm/raw/refs/heads/main/downloads/0.1.0-dev.1/bear-basm-0.1.0-dev.1-linux-x86_64-host-diagnostic.tar.gz">Host diagnostic archive</a></td>
+<td>Contributor build with the host compiler, identified separately</td>
+</tr>
+</tbody></table></div>
+<p>Download the binary archive and its sibling checksum into the same directory:</p>
+<pre><code class="language-sh">sha256sum -c bear-basm-0.1.0-dev.1-linux-x86_64.tar.gz.sha256
+tar -xzf bear-basm-0.1.0-dev.1-linux-x86_64.tar.gz
+cd bear-basm-0.1.0-dev.1-linux-x86_64
+./bin/basm --version
+./bin/basm -f elf64 -o hello.o examples/hello_linux_x86_64.basm
+</code></pre>
+<p>The assembler binary runs <strong>without Python, Perl, Make, a C compiler or the
+Bear toolchain</strong>. Linking and running the resulting example additionally needs
+a Linux ELF linker. Use the binary in place, or optionally install this
+sovereign package with Python 3.10+:</p>
+<pre><code class="language-sh">python3 install.py --prefix &quot;$HOME/.local&quot;
+&quot;$HOME/.local/bin/basm&quot; --help
+</code></pre>
+<p>Installation does not edit your shell configuration or <code>PATH</code>. The host
+diagnostic archive can be run directly; the installer accepts the sovereign
+package. The archive checksums and file manifests are <strong>unsigned</strong>: matching
+hashes detect changes relative to the supplied values, not publisher identity.</p>
+<p>The film&#39;s ELF inspection and full scripted demo also use <code>elftool</code>. Build
+that companion with <code>make host</code> from a source checkout; the binary archive
+above distributes the assembler. See <a href="downloads/README.md">download and package usage</a>,
+<a href="docs/BUILD.md">build and installation</a>, <a href="SUPPORTED-SUBSET.md">supported syntax and forms</a>,
+<a href="docs/TESTING.md">testing</a> and <a href="SECURITY.md">security scope</a>.</p>
+<h2 id="start-with-one-file">Start with one file</h2>
+<p>On Linux x86-64, clone the source, build the contributor tools and run the
+included example. For an existing checkout, start at <code>make host</code> from the
+repository root:</p>
+<pre><code class="language-sh">git clone https://github.com/FermiHart/basm.git
+cd basm
+make host
+build/host/basm -f elf64 -o hello.o demo/hello.basm
+ld -o hello hello.o
+./hello
+</code></pre>
+<pre><code class="language-text">Hello from BearBasm!
+</code></pre>
+<p>The host build needs a C compiler, Make, Python 3.10+ and Perl. Running the
+example also needs a Linux ELF linker. The assembled program uses Linux system
+calls directly.</p>
+<p>With <code>basm</code> on your <code>PATH</code>, ordinary assembly takes one command:</p>
+<pre><code class="language-sh">basm -f elf64 -o module.o module.basm
+</code></pre>
+<p>Attestation and explanation are explicit options. They do not require a network
+service, an account or a cloud signing provider.</p>
+<details>
+<summary><strong>Choose the build that matches your work</strong></summary>
+
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Build</th>
+<th>Command</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Contributor</td>
+<td><code>make host</code></td>
+<td>Build with a host C compiler; includes the public assembler and host inspection tools</td>
+</tr>
+<tr>
+<td>Sovereign</td>
+<td><code>make BEYOND_ROOT=/path/to/Beyond_BDM</code></td>
+<td>Build with the explicitly supplied Bear, BearLinker and blibc toolchain</td>
+</tr>
+<tr>
+<td>Compatibility</td>
+<td><code>make sovereign-compat BEYOND_ROOT=/path/to/Beyond_BDM</code></td>
+<td>Retain the separate Beyond-facing bootstrap-capable executable</td>
+</tr>
+</tbody></table></div>
+<p>The public executable has a fixed 64-bit encoding mode, with ordinary operand
+widths within that mode. Existing bootstrap consumers use their matching
+compatibility profile. Both builds share the same assembler implementation.</p>
+<p>Create development packages from the source checkout:</p>
+<pre><code class="language-sh">make package-source
+make package-host
+# Sovereign package with an explicit existing Beyond toolchain:
+make package BEYOND_ROOT=/path/to/Beyond_BDM
+</code></pre>
+<p>Packages are written to <code>dist/</code>. Source packaging uses explicitly tracked files;
+see <a href="docs/BUILD.md">the build guide</a> for prerequisites, manifests, staging and
+removal.</p>
+</details>
+
+<h2 id="what-the-witness-remembers">What the witness remembers</h2>
+<p>An object hash identifies the output bytes. Basm&#39;s v4 record also binds the
+assembly context: consumed inputs, configuration, assembler and profile.</p>
+<details>
+<summary><strong>Look inside the signed record</strong></summary>
+
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Recorded identity</th>
+<th>What it refers to</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Source and dependencies</strong></td>
+<td>The source, includes and binary inclusions consumed by the assembler</td>
+</tr>
+<tr>
+<td><strong>Expanded input and configuration</strong></td>
+<td>Digests of the expanded source and assembly configuration</td>
+</tr>
+<tr>
+<td><strong>Assembler</strong></td>
+<td>The executable used to produce the object</td>
+</tr>
+<tr>
+<td><strong>Output and profile</strong></td>
+<td>The emitted artifact, its format and the selected profile/bootstrap policy</td>
+</tr>
+<tr>
+<td><strong>Signature</strong></td>
+<td>The signed record, checked against the public key selected by the verifier</td>
+</tr>
+</tbody></table></div>
+</details>
+
+<p>The producer captures input bytes when they are consumed. Verification uses
+the signed record and compares the referenced files. A public key supplied
+outside the record establishes which signer the consumer expects.</p>
+<p><strong>The artifact has an identity. The record has a signer. The consumer chooses
+what to trust.</strong></p>
+<h2 id="inspect-the-output">Inspect the output</h2>
+<p>Assembly is a close conversation with a machine. The tool should let you look
+at what it emitted.</p>
+<p>Basm can list its supported instructions and modeled forms, emit an assembly
+trace, and report diagnostics as JSON. The companion <code>elftool</code> reads ELF
+structure, audits its documented invariants, compares objects and verifies
+attestation records.</p>
+<pre><code class="language-sh">build/host/basm --capabilities
+build/host/basm --target-profile public --list-instructions
+build/host/basm --target-profile public --explain \
+  -f elf64 -o hello.o demo/hello.basm
+build/host/elftool audit hello.o
+</code></pre>
+<p>The trace exposes source origins, emitted byte spans and modeling coverage.
+Unmodeled instructions remain explicitly marked. Trace bytes describe the
+object before link-time relocation.</p>
+<h2 id="reproduce-the-moment">Reproduce the moment</h2>
+<p>The demonstration helper creates a fresh workspace, runs the actual tools,
+checks the expected outcomes and records their output. It changes one byte in
+an object, verifies rejection, restores the exact original and verifies again.
+It also checks rejection of an unexpected signer.</p>
+<pre><code class="language-sh">BASM=&quot;$PWD/build/host/basm&quot; \
+ELFTOOL=&quot;$PWD/build/host/elftool&quot; \
+  sh demo/run.sh --output-dir /tmp/basm-demo
+</code></pre>
+<p>Use a new output directory for each capture. The helper uses a clearly
+identified synthetic demonstration key. It is not a release-signing identity.</p>
+<details>
+<summary><strong>Read the evidence precisely</strong></summary>
+
+<p>This presentation shows the <code>0.1.0-dev.1</code> development candidate on Linux x86-64.
+The captured assembler is the sovereign public build; its companion <code>elftool</code>
+is a host build. Reproduction can also use the explicit host assembler above.</p>
+<p>The signed record in the film describes <strong><code>hello.o</code></strong>. It does not attest the
+linked executable, its execution or an entire capsule. Current v4 verification
+needs the referenced source, output and dependency files at resolvable recorded
+paths; the expanded-input and configuration hashes are recorded commitments.</p>
+<p>Signatures authenticate recorded evidence under a selected key. Functional
+correctness, memory safety and runtime confinement require their own
+verification. The current explanation model reports semantic verification as
+unimplemented.</p>
+<p>The public distribution scope is Linux x86-64, ELF64 relocatable objects and
+flat binaries. Native Windows/macOS packages, complete NASM compatibility and a
+stable release-signing identity are outside this candidate&#39;s claims.</p>
+<p>The hero illustration is original decorative geometry. The console output in
+the film comes from actual program execution. Neither the geometry nor the
+editorial timing is a security measurement or performance result.</p>
+</details>
+
+<hr>
+<p><strong>You wrote the instructions. Let the result bring its evidence.</strong></p>
+<p><strong>F E R M I ∞ H A R T</strong> &lt;<a href="mailto:contact@fermihart.com">contact@fermihart.com</a>&gt;</p>
+<p><a href="LICENSE">BSD-3-Clause</a> · <a href="NOTICE">Notices</a> · <a href="REUSE.toml">Per-file licensing</a> ·
+<a href="readme/LICENSE.media.txt">Presentation license</a>.</p>
+<p><a href="index.html">HTML presentation source</a> — open it locally with the adjacent
+<code>readme/</code> assets. The GitHub file view shows source; a separate site deployment
+is not required to use this repository.</p>
+</article></main><script>document.querySelectorAll('pre').forEach(pre=>{const btn=document.createElement('button');btn.className='copy';btn.type='button';btn.textContent='COPY';btn.setAttribute('aria-label','Copy command');btn.addEventListener('click',async()=>{const text=pre.querySelector('code')?.textContent||pre.textContent;try{await navigator.clipboard.writeText(text);btn.textContent='COPIED';setTimeout(()=>btn.textContent='COPY',1600)}catch(e){const r=document.createRange();r.selectNodeContents(pre.querySelector('code')||pre);const s=window.getSelection();s.removeAllRanges();s.addRange(r);btn.textContent='SELECTED';setTimeout(()=>btn.textContent='COPY',1600)}});pre.appendChild(btn)});document.querySelectorAll('a[href^="http"]').forEach(a=>{a.target='_blank';a.rel='noopener noreferrer'});</script></body></html>

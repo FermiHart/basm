@@ -1,0 +1,21 @@
+; TEST-06: BUG-11 - push imm with label apply g_org
+; Verify push with labels applies org correctly
+
+BITS 32
+org 0x1000
+section .text
+
+; Push label address (should include org)
+push label1
+push label2
+push 0x2000
+
+label1:
+nop
+
+label2:
+nop
+
+; Push with immediate
+push 0x42
+push label1

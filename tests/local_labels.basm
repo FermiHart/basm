@@ -1,0 +1,25 @@
+; tests/local_labels.basm — regression suite for @@ / @F / @B
+bits 64
+section .text
+
+global _start
+_start:
+    mov rax, 0
+@@:
+    inc rax
+    cmp rax, 3
+    jb @B          ; jump backward to previous @@
+
+    mov rbx, 0
+@@:
+    inc rbx
+    cmp rbx, 2
+    jb @B
+
+    ; forward reference
+    jmp @F
+    nop
+@@:
+    mov rcx, 7
+
+    ret

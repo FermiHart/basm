@@ -1,0 +1,107 @@
+{
+  "schema": "BASM-IC02-INVENTORY-v1",
+  "status": "GROUNDWORK_ONLY",
+  "plan": "toolchain/BearBasm/WAVES-INTENT-2030-20.md",
+  "mapping_status": "SOURCE_DECLARED; object paths follow build rules, not verified linkage",
+  "consumers": [
+    {
+      "id": "ic02-memchr-bear-nul-v1",
+      "laboratory": ["L5", "L7"],
+      "operation": "memchr",
+      "sources": ["toolchain/stage3/bear.c", "toolchain/stage3/bear_pp.c"],
+      "caller_symbols": ["bear_compile_file", "bear_preprocess_file", "bear_preprocess"],
+      "source_calls": ["memchr(pb, 0, pr)", "memchr(buf + pfx, 0, nread)", "memchr(next->buf, 0, (size_t)next->len)"],
+      "host_objects": ["toolchain/stage3/bear.o", "toolchain/stage3/bear_pp.o"],
+      "host_consumer": "toolchain/stage3/bear",
+      "sovereign_object_templates": ["${SOV_OBJDIR}/bear.o", "${SOV_OBJDIR}/bear_pp.o"],
+      "sovereign_consumers": ["toolchain/stage3/bear-sovereign", "toolchain/stage3/bear-sovereign-bld"],
+      "sovereign_object_default": "SOV_OBJDIR defaults to /tmp/bear_sov in toolchain/stage3/Makefile",
+      "provider_source": "surfaces/blibc/core/mem/memchr.c",
+      "provider_symbol": "bear_memchr",
+      "provider_archive": "surfaces/blibc/build/libblibc.a",
+      "lane_constraints": [
+        "Host CC plus host libc is distinct from Bear plus blibc. Do not assume bare memchr resolves to bear_memchr; prove relocations and final provider in the selected executable.",
+        "NUL scans reject embedded zero bytes over exactly the bytes read, before the appended terminator. Include prelude and include-buffer scans, not only the top-level file.",
+        "First match or NULL; no overread, zero-length access, or secret-equality claim. Preserve source validation and failure behavior.",
+        "No AVX execution on current Beyond (OSXSAVE disabled); no vector provider in kernel-linked archives (INV-428)."
+      ],
+      "workload_gap": "The fixed assembly corpus below does not drive Bear C preprocessing. Real C/prelude/include distributions, NUL negatives and retained sizes still need freezing."
+    },
+    {
+      "id": "ic02-memcmp-basm-symbols-v1",
+      "laboratory": ["L5", "L6"],
+      "operation": "memcmp",
+      "sources": ["toolchain/BearBasm/modules/01_foundation.inc", "toolchain/BearBasm/modules/03_parser.inc", "toolchain/BearBasm/modules/05_preprocessor.inc"],
+      "translation_unit": "toolchain/BearBasm/basm.c",
+      "caller_symbols": ["sym_find", "const_lookup", "macro_find", "pp_def_find"],
+      "consumer_object": "toolchain/BearBasm/build/bear/basm.o",
+      "consumer": "toolchain/BearBasm/basm",
+      "provider_source": "surfaces/blibc/core/mem/memcmp.c",
+      "provider_symbol": "bear_memcmp",
+      "provider_archive": "surfaces/blibc/build/libblibc.a",
+      "lane_constraints": [
+        "All modules are included into basm.c, not separate module objects. The Bear product uses blibc string.h macro mapping memcmp to bear_memcmp; inspect selected object relocations and final linkage before claiming reachability.",
+        "Symbol lookup checks hash and length before comparing nl bytes. Names are public; an equality-only helper may replace this use, not the public lexicographic memcmp contract.",
+        "Preserve unsigned byte ordering in bear_memcmp. Secret equality belongs to bear_ct_memcmp, never the early-exit name lookup.",
+        "build/gcc-blibc/basm.o and basm-gcc-blibc are a separate same-libc compiler lane; a host-libc executable is another lane."
+      ],
+      "workload_gap": "ic02-assembly-v1 exercises real label resolution, not a measured symbol-length, collision or call-count distribution."
+    },
+    {
+      "id": "ic02-sha256-basm-software-v1",
+      "laboratory": ["L8"],
+      "operation": "SHA-256",
+      "sources": ["toolchain/BearBasm/sha256_ni.h", "toolchain/BearBasm/modules/06_attestation.inc", "toolchain/BearBasm/sign.c"],
+      "consumer_objects": ["toolchain/BearBasm/build/bear/basm.o", "toolchain/BearBasm/build/bear/sign.o"],
+      "consumer": "toolchain/BearBasm/basm",
+      "caller_symbols": ["basm_sha_file", "sign_finalise_attestation"],
+      "provider_symbols": ["basm_sha_update", "basm_sha_block", "sgn_update", "sgn_block"],
+      "symbol_scope": "static header-generated functions; there is no standalone sha256_ni.o or external SHA-NI provider in this lane",
+      "lane_constraints": [
+        "sha256_ni.h enables SHA256NI_X86 only for __x86_64__ and not __bear__. The Bear product compiles software compression even on a SHA-capable host.",
+        "Host test_sha or a host CC basm may use intrinsics; neither demonstrates accelerated SHA in the Bear-built product.",
+        "Attestation hashes tool, source and object through basm_sha_file. sign.c hashes proof bodies with the separate sgn_ namespace. Unsigned workload proofs do not exercise signing.",
+        "Rel8 escrow may select bear_sha256_* under BEAR_TIME_H rather than this header's implementation; do not conflate escrow with basm_sha_file.",
+        "Future SHA-NI requires SHA plus SSSE3/SSE4.1 and permitted OS/domain state; retain software, tails, padding and streaming equivalence. No host execution of ring0 candidates."
+      ],
+      "workload_gap": "Fixed unsigned attestation assembly is only groundwork. Separate hash-kernel and consumer timings, selected static call sites and signing workloads remain unmeasured."
+    }
+  ],
+  "source_evidence": [
+    {"path": "toolchain/BearBasm/WAVES-INTENT-2030-20.md", "anchors": ["### IC02 - Beyond Vivo"]},
+    {"path": "toolchain/stage3/Makefile", "anchors": ["BEAR_OBJS = $(BEAR_SRCS:.c=.o)", "SOV_OBJDIR ?= /tmp/bear_sov"]},
+    {"path": "toolchain/stage3/bear.c", "anchors": ["int bear_compile_file(", "int bear_preprocess_file(", "memchr(pb, 0, pr)", "memchr(buf + pfx, 0, nread)"]},
+    {"path": "toolchain/stage3/bear_pp.c", "anchors": ["bear_preprocess(", "memchr(next->buf, 0, (size_t)next->len)"]},
+    {"path": "surfaces/blibc/core/mem/memchr.c", "anchors": ["bear_memchr("]},
+    {"path": "surfaces/blibc/core/mem/memcmp.c", "anchors": ["bear_memcmp("]},
+    {"path": "surfaces/blibc/core/mem/ct_memcmp.c", "anchors": ["bear_ct_memcmp("]},
+    {"path": "surfaces/blibc/include/posix/include/string.h", "anchors": ["#define memcmp     bear_memcmp", "#define memchr     bear_memchr"]},
+    {"path": "toolchain/BearBasm/Makefile", "anchors": ["$(SOV_DIR)/basm.o: basm.c", "$(SOV_DIR)/sign.o: sign.c", "BLIBC_LIB := $(BLIBC)/build/libblibc.a"]},
+    {"path": "toolchain/BearBasm/basm.c", "anchors": ["#include \"modules/01_foundation.inc\"", "#include \"modules/06_attestation.inc\""]},
+    {"path": "toolchain/BearBasm/modules/01_foundation.inc", "anchors": ["static Sym *sym_find(", "memcmp(g_syms[idx].name, name, nl)"]},
+    {"path": "toolchain/BearBasm/modules/03_parser.inc", "anchors": ["sym_find("]},
+    {"path": "toolchain/BearBasm/modules/05_preprocessor.inc", "anchors": ["pp_def_find(", "memcmp(pp_defs[idx].name, name, nl)"]},
+    {"path": "toolchain/BearBasm/modules/06_attestation.inc", "anchors": ["#define SHA256NI_PREFIX   basm_sha_", "static int basm_sha_file(", "#define rel8_sha_update bear_sha256_update"]},
+    {"path": "toolchain/BearBasm/sign.c", "anchors": ["#define SHA256NI_PREFIX   sgn_", "sgn_update(&c, body, (size_t)body_len)"]},
+    {"path": "toolchain/BearBasm/sha256_ni.h", "anchors": ["#if defined(__x86_64__) && !defined(__bear__)", "static void SHA256NI_FN(block)(", "SHA256NI_FN(block)(c, c->buf)"]}
+  ],
+  "workload": {
+    "id": "ic02-assembly-v1",
+    "status": "FIXED_GROUNDWORK_NOT_PERFORMANCE_BASELINE",
+    "recipe": "For each fixture, serially: BASM -f elf64 -o OBJECT --emit-attestation PROOF SOURCE; SOURCE_DATE_EPOCH=0. No signing, cache, profiler, linker or generated-code execution.",
+    "dependencies": "Complete existing files, no includes or incbin; SHA-256 pins exact bytes, including comments. Do not concatenate or silently refresh pins.",
+    "fixtures": [
+      {"id": "ic02-linux-syscall-v1", "partition": "tuning", "laboratory": "L1", "path": "toolchain/BearBasm/runtime/syscall_x86_64.basm", "sha256": "85698d59a00253a0245b9c62e19610d111606c1692325b444967de1c745d0042", "production_object": "toolchain/BearBasm/build/bear/syscall.o", "symbols": ["bear_osif_syscall6", "bear_osif_exit"], "execution_domain": "Linux userspace; assemble only here"},
+      {"id": "ic02-beyond-syscall-v1", "partition": "tuning", "laboratory": "L1", "path": "surfaces/init/bsys.basm", "sha256": "08b0c5fcaaf4c0e66aa13c5fdb1a9ce0db5a24f445285c99f3b34a4f8600109a", "production_object": "surfaces/init/bsys.o", "symbols": ["__bsys6", "__bsys7"], "execution_domain": "Beyond userspace single door, not Linux; assemble only here"},
+      {"id": "ic02-uefi-bridge-v1", "partition": "validation", "laboratory": "L2", "path": "boot/uefi/efi_abi.basm", "sha256": "91a30987246023352602c9618ea172be74a292524f6761e78f79c4d31bf9173f", "production_object": "boot/uefi/efi_abi.o", "symbols": ["_start", "efi_call1", "efi_call5", "efi_finalize"], "execution_domain": "UEFI MS-x64/SysV bridge, not a hosted function workload; assemble only here"}
+    ]
+  },
+  "budgets": {
+    "ratification": "PENDING",
+    "measurements": null,
+    "inherited_not_remeasured": {"source": "toolchain/BearBasm/tests/binary_budget_test.sh", "size_text_bytes_max": 750000, "size_bss_bytes_max": 8000000},
+    "proposed_not_approved": {"analysis_process": "separate; must not block exact", "analysis_rss_mib_max": 256, "analysis_wall_seconds_max": 10, "search_candidates_max": 32, "search_total_seconds": null, "search_rounds": null, "end_to_end_paired_median_reduction_percent_min": 5},
+    "exhaustion": "UNPROVEN with reason, never partial approval",
+    "accounting": "Measure total package size and auxiliary RSS too; never replace or relax existing performance gates or MAX_FAILS=0."
+  }
+}

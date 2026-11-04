@@ -1,0 +1,15 @@
+; TEST-12: UPG-05 - Size mismatch warnings
+; Test immediate truncation warnings
+
+BITS 32
+org 0x1000
+section .text
+
+; These should NOT warn (values fit)
+mov al, 0x42
+mov ax, 0x1234
+mov eax, 0x12345678
+
+; These SHOULD warn (values don't fit)
+mov al, 0x100      ; 256 doesn't fit in 8 bits
+mov ax, 0x10000    ; 65536 doesn't fit in 16 bits

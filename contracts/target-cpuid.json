@@ -1,0 +1,6 @@
+{
+  "schema": "bearbasm-contract-target-v1",
+  "domain": "hosted-user",
+  "features": ["base", "cpuid"],
+  "os_state": {"cpuid_user_enabled": true}
+}

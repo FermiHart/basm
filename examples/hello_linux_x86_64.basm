@@ -1,0 +1,18 @@
+ ; Linux x86-64 syscalls; no libc. Assemble ELF64, then ld -o hello hello.o.
+bits 64
+default rel
+section .rodata
+message: db "Hello from BearBasm!", 10
+message_end:
+section .text
+global _start
+_start:
+    mov eax, 1
+    mov edi, 1
+    lea rsi, [rel message]
+    mov edx, message_end-message
+    syscall
+    mov eax, 60
+    xor edi, edi
+    syscall
+section .note.GNU-stack noalloc noexec nowrite progbits

@@ -1,0 +1,25 @@
+; TEST-10: Complex addressing modes
+; Verify various memory addressing patterns
+
+BITS 32
+org 0x1000
+section .text
+
+; Base + displacement
+mov eax, [ebx+0x100]
+mov [ecx+0x200], edx
+
+; Base + index
+mov eax, [ebx+ecx]
+mov [edx+esi], eax
+
+; Base + index*scale
+mov eax, [ebx+ecx*4]
+mov [edx+esi*8], eax
+
+; Base + index*scale + displacement
+mov eax, [ebx+ecx*4+0x10]
+mov [edx+esi*2+0x20], eax
+
+; Index*scale + displacement (no base)
+mov eax, [ecx*4+0x1000]

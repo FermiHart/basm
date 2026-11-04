@@ -1,0 +1,5 @@
+ ; Flat bytes: 42 41 53 4d 01 00 00 00.
+bits 64
+section .data
+db "BASM"
+dd 1

@@ -1,0 +1,118 @@
+<!-- Copyright (c) 2026 F E R M I ∞ H A R T <contact@fermihart.com> -->
+<!-- SPDX-License-Identifier: BSD-3-Clause -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="title desc">
+  <title id="title">BASM — Every build deserves a witness.</title>
+  <desc id="desc">F E R M I ∞ H A R T. BASM. Assemble. Inspect. Attest. An original decorative faceted object is surrounded by orbital traces and labels for source identity, object identity and a signature key. x86-64. ELF64 and BIN. Ed25519.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#070a12"/>
+      <stop offset=".52" stop-color="#111426"/>
+      <stop offset="1" stop-color="#071c21"/>
+    </linearGradient>
+    <radialGradient id="aura">
+      <stop offset="0" stop-color="#65fbd2" stop-opacity=".14"/>
+      <stop offset=".48" stop-color="#65fbd2" stop-opacity=".045"/>
+      <stop offset="1" stop-color="#65fbd2" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#65fbd2" stop-opacity="0"/>
+      <stop offset=".34" stop-color="#65fbd2" stop-opacity=".64"/>
+      <stop offset=".71" stop-color="#a4afff" stop-opacity=".48"/>
+      <stop offset="1" stop-color="#a4afff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="upperFace" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#264f50"/>
+      <stop offset=".55" stop-color="#163a40"/>
+      <stop offset="1" stop-color="#193039"/>
+    </linearGradient>
+    <linearGradient id="leftFace" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#133f40"/>
+      <stop offset="1" stop-color="#0b2028"/>
+    </linearGradient>
+    <linearGradient id="rightFace" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#253249"/>
+      <stop offset="1" stop-color="#101c2b"/>
+    </linearGradient>
+    <linearGradient id="objectEdge" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#65fbd2" stop-opacity=".9"/>
+      <stop offset=".45" stop-color="#f5f1df" stop-opacity=".8"/>
+      <stop offset="1" stop-color="#a4afff" stop-opacity=".8"/>
+    </linearGradient>
+    <g id="artifact" fill="none">
+      <circle r="239" fill="url(#aura)"/>
+      <path d="M-225 0H225M0-178V179" stroke="#8794b8" stroke-opacity=".1" stroke-dasharray="2 8"/>
+      <ellipse rx="202" ry="103" transform="rotate(-28)" stroke="#a4afff" stroke-opacity=".28"/>
+      <ellipse rx="184" ry="89" transform="rotate(-28)" stroke="#a4afff" stroke-opacity=".1"/>
+      <ellipse rx="168" ry="120" transform="rotate(39)" stroke="#65fbd2" stroke-opacity=".17"/>
+      <path d="M-184 47C-162-51-71-127 34-128C94-129 147-99 170-56" stroke="#65fbd2" stroke-opacity=".64" stroke-width="1.2"/>
+      <path d="M-169 62C-154-28-68-108 31-111C85-114 134-88 156-50" stroke="#65fbd2" stroke-opacity=".24"/>
+      <path d="M-151 76C-146-7-65-88 29-93C75-96 118-77 142-44" stroke="#65fbd2" stroke-opacity=".14"/>
+      <path d="M-139 92C-116 127-58 144 9 132C93 117 163 55 183-19" stroke="#a4afff" stroke-opacity=".39"/>
+      <path d="M-125 82C-104 112-54 125 5 114C78 100 142 44 162-19" stroke="#a4afff" stroke-opacity=".18"/>
+      <path d="M-112 72C-91 97-48 106 2 96C65 83 119 35 140-18" stroke="#a4afff" stroke-opacity=".1"/>
+      <path d="M-116-134l5-8m232 265 5 8M-210 29l-9 1m421-62 9-1" stroke="#8794b8" stroke-opacity=".65"/>
+      <circle cx="-184" cy="47" r="3" fill="#65fbd2"/>
+      <circle cx="-184" cy="47" r="7" stroke="#65fbd2" stroke-opacity=".2"/>
+      <circle cx="183" cy="-19" r="2.5" fill="#a4afff"/>
+      <circle cx="30" cy="-128" r="2" fill="#f5f1df" fill-opacity=".8"/>
+      <path d="M0-96 87-47 87 53 0 105-87 53-87-47Z" fill="#09171f"/>
+      <path d="M0-96 87-47 0 6-87-47Z" fill="url(#upperFace)"/>
+      <path d="M-87-47 0 6V105L-87 53Z" fill="url(#leftFace)"/>
+      <path d="M0 6 87-47V53L0 105Z" fill="url(#rightFace)"/>
+      <path d="M0-96 87-47V53L0 105-87 53V-47Zm-87 49L0 6l87-53M0 6V105" stroke="url(#objectEdge)" stroke-width="1.35" stroke-linejoin="round"/>
+      <path d="M0-76 61-35 0-1-61-35Z" stroke="#65fbd2" stroke-opacity=".24" stroke-linejoin="round"/>
+      <path d="m0-58 34 22L0-17-34-36Z" stroke="#65fbd2" stroke-opacity=".48" stroke-linejoin="round"/>
+      <path d="m-65-16 39 23m-39-6 39 23m-39-6 39 23m-39-6 39 23" stroke="#65fbd2" stroke-opacity=".22" stroke-linecap="round"/>
+      <path d="m25 23 39-23v52L25 75Z" stroke="#a4afff" stroke-opacity=".22" stroke-linejoin="round"/>
+      <path d="m37 30 15-9v23l-15 9Z" stroke="#a4afff" stroke-opacity=".47" stroke-linejoin="round"/>
+      <circle cy="-96" r="2.5" fill="#f5f1df"/>
+      <circle cx="-87" cy="-47" r="2" fill="#65fbd2"/>
+      <circle cx="87" cy="-47" r="2" fill="#a4afff"/>
+      <circle cy="105" r="2" fill="#a4afff"/>
+      <path d="M-201-120h62l64 37" stroke="#65fbd2" stroke-opacity=".58"/>
+      <path d="m-78-88 3 5-6-1" stroke="#65fbd2" stroke-opacity=".8" stroke-linejoin="round"/>
+      <text x="-201" y="-133" fill="#65fbd2" font-family="DejaVu Sans Mono, monospace" font-size="10" letter-spacing="1.6">SOURCE ID</text>
+      <path d="m87 50 29 17h91" stroke="#a4afff" stroke-opacity=".55"/>
+      <text x="121" y="57" fill="#a4afff" font-family="DejaVu Sans Mono, monospace" font-size="10" letter-spacing="1.4">OBJECT ID</text>
+      <g transform="translate(44 142)" stroke="#ffcc66" stroke-linecap="round" stroke-linejoin="round">
+        <circle r="6.5" stroke-width="1.2"/>
+        <circle r="1.7" fill="#ffcc66" stroke="none"/>
+        <path d="M7 0h34m-6 0v7m-8-7v5" stroke-width="1.2"/>
+      </g>
+      <text x="-73" y="145" fill="#ffcc66" font-family="DejaVu Sans Mono, monospace" font-size="9" letter-spacing="1.2">SIGNATURE KEY</text>
+    </g>
+  </defs>
+  <rect width="1200" height="640" rx="26" fill="url(#background)"/>
+  <g aria-hidden="true">
+    <path d="M72 84H1128M72 502H1128" stroke="#8794b8" stroke-opacity=".18"/>
+    <path d="M632 120V470" stroke="#8794b8" stroke-opacity=".09"/>
+    <path d="M662 102h16m-8-8v16M1108 472h16m-8-8v16" stroke="#8794b8" stroke-opacity=".32"/>
+    <path d="M72 280H550" stroke="url(#edge)" stroke-opacity=".47"/>
+    <circle cx="1094" cy="59" r="2.5" fill="#ffcc66"/>
+  </g>
+  <text x="72" y="63" fill="#f5f1df" font-family="DejaVu Sans, Arial, sans-serif" font-size="15" font-weight="600" letter-spacing=".55" xml:space="preserve">F E R M I ∞ H A R T</text>
+  <text x="1080" y="63" text-anchor="end" fill="#8794b8" font-family="DejaVu Sans Mono, monospace" font-size="10" letter-spacing="1.8">THE BEAR ASSEMBLER</text>
+  <text x="72" y="149" fill="#ffcc66" font-family="DejaVu Sans Mono, monospace" font-size="10" letter-spacing="2.5">SMALL TOOL. LASTING TRACE.</text>
+  <text x="64" y="263" fill="#f5f1df" font-family="DejaVu Sans, Arial, sans-serif" font-size="128" font-weight="800" letter-spacing="-3">BASM</text>
+  <text x="73" y="331" fill="#f5f1df" font-family="DejaVu Sans, Arial, sans-serif" font-size="26" font-weight="600" letter-spacing=".1">
+    <tspan x="73">EVERY BUILD</tspan>
+    <tspan x="73" dy="35">DESERVES A WITNESS.</tspan>
+  </text>
+  <text x="74" y="411" fill="#65fbd2" font-family="DejaVu Sans Mono, monospace" font-size="11" letter-spacing="1.75">ASSEMBLE. INSPECT. ATTEST.</text>
+  <use xlink:href="#artifact" transform="translate(888 294)" aria-hidden="true"/>
+  <g font-family="DejaVu Sans Mono, monospace">
+    <path d="M430 530V584M790 530V584" stroke="#8794b8" stroke-opacity=".2"/>
+    <circle cx="76" cy="539" r="2.5" fill="#65fbd2"/>
+    <text x="91" y="543" fill="#8794b8" font-size="10" letter-spacing="1.7">TARGET</text>
+    <text x="73" y="578" fill="#f5f1df" font-size="24">x86-64</text>
+    <circle cx="465" cy="539" r="2.5" fill="#ffcc66"/>
+    <text x="480" y="543" fill="#8794b8" font-size="10" letter-spacing="1.7">OUTPUT</text>
+    <text x="462" y="578" fill="#f5f1df" font-size="24">ELF64 + BIN</text>
+    <circle cx="825" cy="539" r="2.5" fill="#a4afff"/>
+    <text x="840" y="543" fill="#8794b8" font-size="10" letter-spacing="1.7">EVIDENCE</text>
+    <text x="822" y="578" fill="#f5f1df" font-size="24">Ed25519</text>
+  </g>
+  <path d="M64 1H1136" stroke="url(#edge)"/>
+  <rect x=".5" y=".5" width="1199" height="639" rx="25.5" fill="none" stroke="#8794b8" stroke-opacity=".2"/>
+</svg>
+

@@ -1,0 +1,32 @@
+section .data
+
+struc POINT
+    .x  resq 1
+    .y  resq 1
+    .tag resb 8
+endstruc
+
+p1:
+istruc POINT
+    at POINT.x,  dq 42
+    at POINT.y,  dq 99
+    at POINT.tag, db "PT000000"
+iend
+
+p2:
+istruc POINT
+    at POINT.y,  dq 7
+iend
+
+p3:
+istruc POINT
+    at POINT.x,  dq 1
+    at POINT.tag, db 0x41, 0x42, 0x43
+iend
+
+section .text
+global _start
+_start:
+    mov rax, 60
+    mov rdi, POINT_size
+    syscall

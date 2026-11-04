@@ -1,0 +1,58 @@
+; tests/ifdef.basm — regression suite for %ifdef / %ifndef / %elifdef / %ifidn
+bits 64
+section .text
+
+%define FEATURE_A 1
+%define FEATURE_B 0
+
+; %ifdef true branch
+global _start
+_start:
+%ifdef FEATURE_A
+    mov rax, 1
+%endif
+
+; %ifdef false branch (skip)
+%ifdef NONEXISTENT
+    mov rax, 999
+%endif
+
+; %ifndef false branch (execute)
+%ifndef NONEXISTENT
+    mov rbx, 2
+%endif
+
+; %ifndef true branch (skip)
+%ifndef FEATURE_A
+    mov rbx, 999
+%endif
+
+; %elifdef chain
+%ifdef MISSING
+    mov rcx, 10
+%elifdef FEATURE_A
+    mov rcx, 20
+%else
+    mov rcx, 30
+%endif
+
+; %ifidn string equality
+%ifidn FEATURE_A, FEATURE_A
+    mov rdx, 3
+%endif
+
+; %ifnidn string inequality
+%ifnidn FEATURE_A, FEATURE_B
+    mov rsi, 4
+%endif
+
+; nested %ifdef
+%ifdef FEATURE_A
+    %ifdef FEATURE_B
+        mov rdi, 50
+    %else
+        mov rdi, 60
+    %endif
+%endif
+
+    ret
