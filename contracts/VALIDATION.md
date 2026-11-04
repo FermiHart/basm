@@ -10,8 +10,11 @@ compilador C, GNU assembler, linker e objdump disponíveis:
 make host
 BASM_CANDIDATE="$PWD/build/host/basm" python3 tests/campaign/test_contracts.py
 python3 tests/campaign/test_main.py --basm build/host/basm
-python3 tests/campaign/test_generation_version.py --basm build/host/basm
+python3 tests/campaign/test_generation_version.py --basm build/host/basm-compat
 ```
+
+A suite de versão usa `basm-compat` para produzir fixtures legadas v2, além de
+v3/v4; o executável público mantém seu default v3 para `--emit-attestation`.
 
 Estas são suites de diagnóstico host. A execução não qualifica boot Beyond,
 a toolchain soberana, outras plataformas ou todos os encodings x86-64.
