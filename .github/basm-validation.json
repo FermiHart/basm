@@ -1,0 +1,132 @@
+{
+  "schema": "basm-distribution-validation-v1",
+  "version": "0.1.0-dev.1",
+  "status": "PASS_WITHIN_RECORDED_SCOPE",
+  "recorded_at": "2026-11-04T19:46:15.980154-03:00",
+  "publisher": "F E R M I ∞ H A R T <contact@fermihart.com>",
+  "repository": "https://github.com/FermiHart/basm",
+  "source_archive_commit": "1de9bb6ce6c79076300cf896bdefc23c869be92f",
+  "binary_build_commit": "faa2241d9d8668d2a2407ddccd7df6aa43a9a0ae",
+  "source_difference": {
+    "paths": [
+      "contracts/VALIDATION.md"
+    ],
+    "scope": "Documentation-only correction selecting basm-compat for legacy v2 validation fixtures; all 28 compiler input identities remain unchanged."
+  },
+  "scope": "Local Linux x86-64 development qualification; not a stable release, full NASM compatibility claim or Beyond guest qualification.",
+  "checks": {
+    "standalone": {
+      "status": "PASS",
+      "suites_passed": 22,
+      "suites_failed": 0
+    },
+    "packaging": {
+      "status": "PASS",
+      "tests_passed": 25,
+      "included_in_standalone": true
+    },
+    "contract_checker": {
+      "status": "PASS",
+      "tests_passed": 32
+    },
+    "generation_version_policy": {
+      "status": "PASS",
+      "cases_passed": 6,
+      "binary": "basm-compat"
+    },
+    "demonstration": {
+      "status": "COMPLETE",
+      "expected_events": 14,
+      "object_mutation": "REJECTED",
+      "restored_object": "ACCEPTED",
+      "unexpected_signer": "REJECTED",
+      "synthetic_seed_removed": true,
+      "attested_artifact": "hello.o"
+    },
+    "distribution": {
+      "status": "PASS",
+      "archives_verified": 3,
+      "source_files": 236,
+      "installed_document_files": 39,
+      "sovereign_install_assemble_link_run_uninstall": "PASS"
+    },
+    "binary_preservation": {
+      "status": "PASS",
+      "artifacts_byte_identical_to_qualified_inputs": 7
+    }
+  },
+  "binaries": [
+    {
+      "lane": "host",
+      "artifact": "basm",
+      "bytes": 328112,
+      "sha256": "6254959586f7a62fa41081daeae1c4900c8ef275cb882ea68c42ffe36a98b629"
+    },
+    {
+      "lane": "host",
+      "artifact": "basm-compat",
+      "bytes": 332328,
+      "sha256": "22c146f897e0d673ff687aac48804839c122a37ddb3a0425d980ea6ccf9be93a"
+    },
+    {
+      "lane": "host",
+      "artifact": "elftool",
+      "bytes": 82776,
+      "sha256": "27e62b21446de83f6d04822b8337b304d8c150dd11b3a6d7396d85a2b51a8c52"
+    },
+    {
+      "lane": "host",
+      "artifact": "test-sha",
+      "bytes": 20656,
+      "sha256": "11566cce833e97e5b6c68e52a43bba3c9f3c60f90253ac316290cbc6df1e3e2b"
+    },
+    {
+      "lane": "host",
+      "artifact": "test-sign",
+      "bytes": 43952,
+      "sha256": "0cd7fae3760174324350fca28f5a7c7c5cb0bc7a89f7b1058c7920ab46333558"
+    },
+    {
+      "lane": "sovereign",
+      "artifact": "basm",
+      "bytes": 1128048,
+      "sha256": "fe99c88be764554512cc0a8032d940ce61120d0f260ff58457c0b243a77a96d3"
+    },
+    {
+      "lane": "sovereign",
+      "artifact": "basm-compat",
+      "bytes": 1137264,
+      "sha256": "56e097d41e5c1f42b25f005e2b2555a9eb8773d058a6af7e431862c2a78e2e1d"
+    }
+  ],
+  "archives": [
+    {
+      "path": "downloads/0.1.0-dev.1/bear-basm-0.1.0-dev.1-linux-x86_64-host-diagnostic.tar.gz",
+      "bytes": 3389723,
+      "sha256": "777c03062299818179b5f75cc72ad7fe736a4eb809b88e370dd4d56cf38eaf49"
+    },
+    {
+      "path": "downloads/0.1.0-dev.1/bear-basm-0.1.0-dev.1-linux-x86_64.tar.gz",
+      "bytes": 3499163,
+      "sha256": "26cd803c30e98feaa35aaf87cea21001dd5533d035b54201c2588dd36f464d6c"
+    },
+    {
+      "path": "downloads/0.1.0-dev.1/bear-basm-0.1.0-dev.1-source.tar.gz",
+      "bytes": 3952276,
+      "sha256": "8d2e1a4d0c82b53ace5088aa7fc7508000992e576bfd217094b92570b08041ed"
+    }
+  ],
+  "integrity": "Unsigned SHA-256 inventories. Publisher trust requires an independently trusted reference; these records are not a signing identity.",
+  "reproduce": {
+    "standalone": "make check",
+    "contracts": "contracts/VALIDATION.md",
+    "demonstration": "demo/README.md",
+    "packages_and_installation": "docs/BUILD.md"
+  },
+  "evolution": {
+    "planned_waves": 40,
+    "accepted_waves": 0,
+    "plan": ".github/basm-roadmap.json",
+    "preparation_excluded_from_wave_count": true
+  }
+}
