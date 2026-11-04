@@ -9,3 +9,4 @@ __pycache__/
 /elftool
 /test_sha
 /test_sign
+/_site/

@@ -3,6 +3,14 @@
 
 # Changelog
 
+## Unreleased
+
+- Publish the existing English presentation and original films through GitHub
+  Pages, staging only curated media and notices while checking the reviewed
+  development archive checksums without repackaging them.
+- Separate the author name and contact address into clearly spaced footer
+  blocks; retain the original media, source contracts and per-file licenses.
+
 ## 0.1.0-dev.1 — 2026-11-04
 
 Initial standalone development distribution for Linux x86-64. Source-language,

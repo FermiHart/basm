@@ -14,6 +14,7 @@
   <strong>Assembly. Analysis. Evidence you can verify.</strong><br>
   <a href="#watch-it-build-then-change-one-byte">WATCH IT WORK</a> ·
   <a href="#get-the-development-candidate">GET BASM</a> ·
+  <a href="https://fermihart.github.io/basm/">OPEN THE WEBSITE</a> ·
   <a href="#start-with-one-file">BUILD SOMETHING</a> ·
   <a href="#what-the-witness-remembers">FOLLOW THE EVIDENCE</a>
 </p>
@@ -262,11 +263,14 @@ editorial timing is a security measurement or performance result.
 
 **You wrote the instructions. Let the result bring its evidence.**
 
-**F E R M I ∞ H A R T** &lt;[contact@fermihart.com](mailto:contact@fermihart.com)&gt;
+**F E R M I ∞ H A R T**
+
+[contact@fermihart.com](mailto:contact@fermihart.com)
 
 [BSD-3-Clause](LICENSE) · [Notices](NOTICE) · [Per-file licensing](REUSE.toml) ·
 [Presentation license](readme/LICENSE.media.txt).
 
+[Live project site](https://fermihart.github.io/basm/) ·
 [HTML presentation source](index.html) — open it locally with the adjacent
 `readme/` assets. The GitHub file view shows source; a separate site deployment
 is not required to use this repository.
