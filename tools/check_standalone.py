@@ -91,6 +91,9 @@ def main():
     record('data-sections', [py, 'tests/standalone/test_data_sections.py', '--basm', basm,
                             '--nasm', shutil.which('nasm') or 'nasm',
                             '--output-dir', evidence / 'data-sections'])
+    record('memory-displacements', [py, 'tests/standalone/test_memory_displacements.py',
+                                    '--basm', basm, '--compat', compat,
+                                    '--output-dir', evidence / 'memory-displacements'])
     record('name-boundaries', [py, 'tests/standalone/test_names.py', '--basm', basm,
                               '--nasm', shutil.which('nasm') or 'nasm',
                               '--output-dir', evidence / 'name-boundaries'])

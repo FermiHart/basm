@@ -257,6 +257,14 @@ accepted forms are the fail-closed forms implemented by that mnemonic's
 encoder and exercised by the differential/regression corpus. Unsupported
 widths, register classes, or operand counts are errors.
 
+Resolved memory displacements must fit their encoded address field. BITS 64
+64-bit effective addresses and RIP-relative references require signed disp32.
+32-bit effective addresses accept canonical modular values from -2147483648
+through 4294967295, while compatibility BITS 16 direct addresses accept
+-32768 through 65535. Values outside these ranges are rejected instead of
+being narrowed to a different address; unresolved ELF relocations retain the
+linker's corresponding signed or unsigned range check.
+
 `endbr64` is the literal no-operand CET landing instruction (`F3 0F 1E FA`) in
 BITS 64, with no comma, extra operands or external prefixes. It remains
 explicitly unmodeled in the intent schema/CFG; accepting its bytes is not a

@@ -40,6 +40,43 @@ static void sse_disp32(long value) {
     if ((unsigned long)value+2147483648UL > 4294967295UL) die("SSE displacement out of signed 32-bit range");
 }
 
+static int mem_fits_signed_disp32(long value) {
+    return value >= -2147483647L-1 && value <= 2147483647L;
+}
+static void mem_signed_disp32(long value) {
+    if (!mem_fits_signed_disp32(value))
+        die("memory displacement out of signed 32-bit range");
+}
+static long mem_disp_add(long a, long b) {
+    if ((b>0 && a>BASM_LONG_MAX-b) || (b<0 && a<BASM_LONG_MIN-b))
+        die("memory displacement overflow");
+    return a+b;
+}
+static long mem_disp_sub(long a, long b) {
+    if ((b<0 && a>BASM_LONG_MAX+b) || (b>0 && a<BASM_LONG_MIN+b))
+        die("memory displacement overflow");
+    return a-b;
+}
+
+/* A negative spelling denotes the corresponding modular field value. Keep
+ * those canonical signed spellings, plus the complete unsigned field range,
+ * while rejecting values that would acquire a different address by narrowing. */
+static void validate_mem_disp(const Mem *m, int width, long value) {
+    if (width==2) {
+        if (value < -32768L || value > 65535L)
+            die("memory displacement out of 16-bit range");
+        return;
+    }
+    if (width!=4) die("invalid memory displacement width");
+    if (m->abs32s) {
+        mem_signed_disp32(value);
+        return;
+    }
+    if (value < -2147483647L-1 ||
+        (value >= 0 && (unsigned long)value > 4294967295UL))
+        die("memory displacement out of 32-bit range");
+}
+
 static void parse_mem(const char *tok, Mem *out) {
     int prefetch=g_bounded_sse || (g_ntok && (!strcmp(g_tok[0],"prefetcht0") || !strcmp(g_tok[0],"movnti")));
     if (!validate_operand_len(tok)) die2("parse_mem: operand exceeds max length", tok);
@@ -259,6 +296,7 @@ static void emit_mem_disp(Mem *m, int width) {
         if (m->disp_has_sym && m->disp_sym_sec==SEC_NONE &&
             (g_pass==2 || m->disp_sym_glob))
             die("external symbol requires ELF64 output");
+        validate_mem_disp(m,width,m->disp);
         if (width==2) emit16((uint32_t)m->disp); else emit32((uint32_t)m->disp);
     }
 }
@@ -272,18 +310,23 @@ static void encode_mem(int regfield, Mem *m, int trailing_imm) {
         Sym *s = sym_find(m->sym);
         long extra = m->has_disp ? m->disp : 0;
         if (s && s->defined && s->section == g_cur) {
-            long rel = (long)s->offset + extra - (long)(disp_off + 4 + trailing_imm);
-            if (g_bounded_sse) sse_disp32(rel);
+            long target = mem_disp_add((long)s->offset,extra);
+            long next = mem_disp_add(mem_disp_add((long)disp_off,4L),(long)trailing_imm);
+            long rel = mem_disp_sub(target,next);
+            mem_signed_disp32(rel);
             emit32((uint32_t)rel);
             return;
         } else if (s && s->defined && s->section!=SEC_NONE) {
             /* reloc against section symbol; addend folds the symbol's offset */
             add_reloc_section(disp_off, s->section,
-                              (long)s->offset + extra - 4 - trailing_imm);
+                              mem_disp_sub(mem_disp_sub(
+                                  mem_disp_add((long)s->offset,extra),4L),
+                                  (long)trailing_imm));
         } else {
             /* extern / undefined: reloc against named symbol */
             if (g_pass==1 && (!s || !s->defined)) g_fwd_unresolved=1; /* INV-545 */
-            add_reloc_named(disp_off, m->sym, extra - 4 - trailing_imm);
+            add_reloc_named(disp_off, m->sym,
+                            mem_disp_sub(mem_disp_sub(extra,4L),(long)trailing_imm));
         }
         emit32(0);
         return;
@@ -489,7 +532,7 @@ static void enc_mov(const char *dst, const char *src) {
                /* BUG-06: Use short form A1 for mov eax, [disp32] in 32-bit mode */
         if (rd->size==4 && rd->num==0 && m.no_base && !m.has_index && g_bits==32) {
             emit(0xa1);
-            emit32((uint32_t)m.disp);
+            emit_mem_disp(&m,4);
             return;
         }
         if (rd->size==1)      { emit_rex(0,rr,rx,rb,rd->rex_req); emit(0x8a); }
@@ -503,7 +546,7 @@ static void enc_mov(const char *dst, const char *src) {
                /* BUG-04: Use short form A2 for mov [disp32], al in 32-bit mode */
         if (rs->size==1 && rs->num==0 && m.no_base && !m.has_index && g_bits==32) {
             emit(0xa2);
-            emit32((uint32_t)m.disp);
+            emit_mem_disp(&m,4);
             return;
         }
         if (rs->size==1)      { emit_rex(0,rr,rx,rb,rs->rex_req); emit(0x88); }
