@@ -26,6 +26,8 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <limits.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 static uint8_t *g_buf;
 static size_t   g_len;
@@ -33,6 +35,68 @@ static size_t   g_len;
 static void die(const char *msg) {
     fprintf(stderr, "elftool: %s\n", msg);
     exit(1);
+}
+
+/* General inspection is deliberately smaller than the attestation artifact
+ * limit. The allocation budget is cumulative for one command: released parser
+ * storage is not credited back while a diff still retains its snapshots. */
+#ifndef ELFTOOL_INPUT_MAX
+#define ELFTOOL_INPUT_MAX ((uint64_t)64 * 1024 * 1024)
+#endif
+#ifndef ELFTOOL_ALLOCATION_MAX
+#define ELFTOOL_ALLOCATION_MAX ((uint64_t)512 * 1024 * 1024)
+#endif
+
+static uint64_t g_elf_allocated;
+
+static void elf_budget_charge(size_t size) {
+    uint64_t limit = ELFTOOL_ALLOCATION_MAX;
+    if ((uint64_t)size > limit || g_elf_allocated > limit - (uint64_t)size)
+        die("ELF inspection exceeds aggregate allocation limit");
+    g_elf_allocated += (uint64_t)size;
+}
+
+static void *elf_malloc(size_t size) {
+    elf_budget_charge(size);
+    void *p = malloc(size);
+    if (!p) die("out of memory");
+    return p;
+}
+
+static void *elf_calloc(size_t count, size_t size) {
+    if (count && size > SIZE_MAX / count)
+        die("ELF inspection exceeds aggregate allocation limit");
+    elf_budget_charge(count * size);
+    void *p = calloc(count, size);
+    if (!p) die("out of memory");
+    return p;
+}
+
+static void *elf_realloc(void *old, size_t size) {
+    /* Charge the complete replacement to bound realloc's transient copy too. */
+    elf_budget_charge(size);
+    void *p = realloc(old, size);
+    if (!p) die("out of memory");
+    return p;
+}
+
+/* Preflight the pathname so a FIFO cannot block fopen, then bind admission to
+ * the opened descriptor. Symlinks to an unchanged regular file remain valid;
+ * this is not a race-proof open primitive for a hostile shared directory. */
+static FILE *open_regular_limited(const char *path, uint64_t limit, uint64_t *size) {
+    struct stat before, after;
+    if (!path || stat(path, &before) != 0 || !S_ISREG(before.st_mode) || before.st_size < 0 ||
+        (uint64_t)before.st_size > limit) return NULL;
+    FILE *f = fopen(path, "rb");
+    if (!f) return NULL;
+    if (fstat(fileno(f), &after) != 0 || !S_ISREG(after.st_mode) || after.st_size < 0 ||
+        (uint64_t)after.st_size > limit || before.st_dev != after.st_dev ||
+        before.st_ino != after.st_ino) {
+        fclose(f);
+        return NULL;
+    }
+    if (size) *size = (uint64_t)after.st_size;
+    return f;
 }
 
 /* Check the operands before adding them. Offsets remain uint64_t until
@@ -241,17 +305,17 @@ static void validate_tables(void) {
 static void load(const char *path) {
     free(g_secs); g_secs = NULL; g_nsecs = 0;
     free(g_buf); g_buf = NULL; g_len = 0;
-    FILE *f = fopen(path, "rb");
-    if (!f) die("cannot open input");
-    if (fseek(f, 0, SEEK_END) != 0) { fclose(f); die("cannot seek input"); }
-    long sz = ftell(f);
-    if (sz < 0x40 || (uintmax_t)sz > SIZE_MAX || fseek(f, 0, SEEK_SET) != 0) {
-        fclose(f); die("not a readable ELF64 object (too small or too large)");
+    uint64_t file_size = 0;
+    FILE *f = open_regular_limited(path, ELFTOOL_INPUT_MAX, &file_size);
+    if (!f) die("input must be a regular file within the ELF size limit");
+    if (file_size < 0x40 || file_size > SIZE_MAX) {
+        fclose(f); die("not a readable ELF64 object (too small)");
     }
-    g_len = (size_t)sz;
-    g_buf = malloc(g_len);
-    if (!g_buf) { fclose(f); die("out of memory"); }
-    int read_bad = fread(g_buf, 1, g_len, f) != g_len || ferror(f);
+    g_len = (size_t)file_size;
+    g_buf = elf_malloc(g_len);
+    size_t got = fread(g_buf, 1, g_len, f);
+    int extra = fgetc(f);
+    int read_bad = got != g_len || extra != EOF || ferror(f);
     if (fclose(f) != 0) read_bad = 1;
     if (read_bad) die("read failed");
 
@@ -291,8 +355,7 @@ static void load(const char *path) {
     uint64_t str_off  = rd64(shoff + (uint64_t)shstrndx * shentsize + SH_OFFSET);
     uint64_t str_size = rd64(shoff + (uint64_t)shstrndx * shentsize + SH_SIZE);
 
-    g_secs = calloc(g_nsecs, sizeof(Sec));
-    if (!g_secs) die("out of memory");
+    g_secs = elf_calloc(g_nsecs, sizeof(Sec));
     for (uint16_t i = 0; i < g_nsecs; i++) {
         uint64_t b = shoff + (uint64_t)i * shentsize;
         g_secs[i].name  = str_at(str_off, str_size, rd32(b + SH_NAME));
@@ -433,8 +496,7 @@ static int cmp_dsec_name(const void *a, const void *b);
 
 static char *dstrdup(const char *s) {
     size_t n = strlen(s) + 1;
-    char *p = malloc(n);
-    if (!p) die("out of memory");
+    char *p = elf_malloc(n);
     memcpy(p, s, n);
     return p;
 }
@@ -445,8 +507,7 @@ static char *norm_name(const char *s) {
     static const char hex[] = "0123456789abcdef";
     size_t len = strlen(s);
     if (len > (SIZE_MAX - 1) / 4) die("ELF name too large");
-    char *out = malloc(len * 4 + 1), *p = out;
-    if (!out) die("out of memory");
+    char *out = elf_malloc(len * 4 + 1), *p = out;
     while (*s) {
         unsigned char c = (unsigned char)*s++;
         if (c > 0x20 && c < 0x7f && c != '\\') *p++ = (char)c;
@@ -462,8 +523,7 @@ static char *format_line(const char *fmt, ...) {
     int len = vsnprintf(NULL, 0, fmt, ap);
     va_end(ap);
     if (len < 0 || (uintmax_t)len >= SIZE_MAX) die("comparison line too large");
-    char *out = malloc((size_t)len + 1);
-    if (!out) die("out of memory");
+    char *out = elf_malloc((size_t)len + 1);
     va_start(ap, fmt);
     int written = vsnprintf(out, (size_t)len + 1, fmt, ap);
     va_end(ap);
@@ -475,8 +535,7 @@ static void append_line(char ***lines, size_t *count, size_t *cap, char *line) {
     if (*count == *cap) {
         if (*cap > SIZE_MAX / sizeof(char *) / 2) die("too many comparison records");
         size_t next = *cap ? *cap * 2 : 64;
-        char **p = realloc(*lines, next * sizeof(char *));
-        if (!p) die("out of memory");
+        char **p = elf_realloc(*lines, next * sizeof(char *));
         *lines = p; *cap = next;
     }
     (*lines)[(*count)++] = line;
@@ -500,8 +559,7 @@ static void snap_take(const char *path, Snap *sn) {
     sn->header[3] = rd32(0x30);
     sn->header[4] = rd64(0x18);
     sn->nsecs = 0;
-    sn->secs  = calloc(g_nsecs ? g_nsecs : 1, sizeof(DSec));
-    if (!sn->secs) die("out of memory");
+    sn->secs  = elf_calloc(g_nsecs ? g_nsecs : 1, sizeof(DSec));
     for (uint16_t i = 0; i < g_nsecs; i++) {
         if (g_secs[i].type == SHT_NULL) continue;
         if (!g_secs[i].name[0]) die("unnamed sections unsupported by comparator");
@@ -516,8 +574,7 @@ static void snap_take(const char *path, Snap *sn) {
             !is_reloc(&g_secs[i]) && g_secs[i].type != 8 /*NOBITS*/ &&
             g_secs[i].size > 0) {
             require_span(g_secs[i].off, g_secs[i].size, "section out of file");
-            d->bytes = malloc(g_secs[i].size);
-            if (!d->bytes) die("out of memory");
+            d->bytes = elf_malloc((size_t)g_secs[i].size);
             memcpy(d->bytes, g_buf + g_secs[i].off, g_secs[i].size);
         }
     }
@@ -528,8 +585,7 @@ static void snap_take(const char *path, Snap *sn) {
 
     /* normalized symbols */
     size_t cap = 64; sn->nsyms = 0;
-    sn->syms = malloc(cap * sizeof(char *));
-    if (!sn->syms) die("out of memory");
+    sn->syms = elf_malloc(cap * sizeof(char *));
     for (uint16_t i = 0; i < g_nsecs; i++) {
         if (g_secs[i].type != SHT_SYMTAB) continue;
         uint64_t n = g_secs[i].size / SYM_ENTSZ;
@@ -557,8 +613,7 @@ static void snap_take(const char *path, Snap *sn) {
 
     /* normalized relocations */
     cap = 64; sn->nrelocs = 0;
-    sn->relocs = malloc(cap * sizeof(char *));
-    if (!sn->relocs) die("out of memory");
+    sn->relocs = elf_malloc(cap * sizeof(char *));
     for (uint16_t i = 0; i < g_nsecs; i++) {
         if (!is_reloc(&g_secs[i])) continue;
         uint32_t symtab = g_secs[i].link;
@@ -1077,32 +1132,14 @@ static int cmd_notes(void) {
  * stage produced is exactly the tool the next stage ran).
  * Author: F E R M I ∞ H A R T. */
 #include "sign.h"
-#include <sys/stat.h>
-#include <unistd.h>
 
 #define ATTEST_ARTIFACT_MAX ((uint64_t)1 << 30)
 #define ATTEST_SOURCE_MAX ((uint64_t)16 * 1024 * 1024)
 #define ATTEST_BINARY_MAX ((uint64_t)64 * 1024 * 1024)
 #define ATTEST_CLOSURE_MAX ((uint64_t)128 * 1024 * 1024)
 
-/* Bounded regular-file input, including a preflight to reject static FIFOs.
- * Concurrent hostile directory/inode replacement before fopen is outside this
- * pathname contract; it is not a race-proof open primitive. */
-static FILE *attest_open_regular(const char *path,uint64_t limit,uint64_t *size) {
-    struct stat before,after;
-    if(!path || stat(path,&before)!=0 || !S_ISREG(before.st_mode) || before.st_size<0 ||
-       (uint64_t)before.st_size>limit)return NULL;
-    FILE *f=fopen(path,"rb");if(!f)return NULL;
-    if(fstat(fileno(f),&after)!=0 || !S_ISREG(after.st_mode) || after.st_size<0 ||
-       (uint64_t)after.st_size>limit || before.st_dev!=after.st_dev || before.st_ino!=after.st_ino){
-        fclose(f);return NULL;
-    }
-    if(size)*size=(uint64_t)after.st_size;
-    return f;
-}
-
 static char *attest_read(const char *path, size_t *n_out) {
-    FILE *f = attest_open_regular(path,SIGN_ATTESTATION_MAX_BYTES,NULL);
+    FILE *f = open_regular_limited(path,SIGN_ATTESTATION_MAX_BYTES,NULL);
     if (!f) return NULL;
     if (fseek(f, 0, SEEK_END) != 0) { fclose(f); return NULL; }
     long n = ftell(f);
@@ -1214,7 +1251,7 @@ static int attest_v3_fields(const char *body) {
 
 static int attest_sha_file_limit(const char *path,uint64_t limit,uint8_t out[32]) {
     uint64_t remaining=0;
-    FILE *f = attest_open_regular(path,limit,&remaining);
+    FILE *f = open_regular_limited(path,limit,&remaining);
     if (!f) return 0;
     Sha256 s; sha256_init(&s);
     uint8_t buf[65536];int bad=0;
@@ -1288,7 +1325,7 @@ static int attest_dependency_record(const char *p,size_t n,uint8_t *kind,
 
 static int attest_dependency_sha(const char *path,uint64_t size,uint8_t hash[32]) {
     uint64_t actual_size=0;
-    FILE *f=attest_open_regular(path,size,&actual_size);if(!f)return 0;
+    FILE *f=open_regular_limited(path,size,&actual_size);if(!f)return 0;
     if(actual_size!=size){fclose(f);return 0;}
     Sha256 s;sha256_init(&s);uint8_t buf[65536];int ok=1;
     while(size){

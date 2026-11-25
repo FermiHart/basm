@@ -1,5 +1,8 @@
 /* Exercise the canonical ELF implementation without a replacement crypto
- * implementation. --gc-sections discards only unused attestation commands. */
+ * implementation. Small limits make aggregate-budget regressions cheap and
+ * deterministic; --binary coverage exercises the production defaults. */
+#define ELFTOOL_INPUT_MAX ((uint64_t)64 * 1024)
+#define ELFTOOL_ALLOCATION_MAX ((uint64_t)192 * 1024)
 #define main elftool_original_main
 #include "../../elftool.c"
 #undef main
