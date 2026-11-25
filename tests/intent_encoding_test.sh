@@ -43,7 +43,7 @@ for my $r (@rows){
         $source.="$r->[1] $a, $b\n";
     }}
 }
-$source.="jmp \$\njne \$\nloop \$\ncall \$\n";
+$source.="jmp \$\njmp short \$\njmp near \$\njne \$\njne short \$\njne near \$\nloop \$\ncall \$\n";
 $source.="o64 sysret\nafter_sysret: nop\no64 iret\nafter_iret: nop\n";
 put("$tmp/valid.basm",$source);
 my $oracle=$source;
@@ -68,6 +68,30 @@ for my $profile ('public','beyond') {
         my $rc=run($basm,'--target-profile',$profile,'-f','bin','-o',"$tmp/rejected.bin","$tmp/bad.basm");
         check($rc==256 && !-e "$tmp/rejected.bin","$profile rejects $bad without output");
     }
+    for my $bad ('call','call $ extra','call $, $','call, $','call $,','call [rax,rbx]',
+                 "%define BAD_TARGET [rax,rbx]\ncall BAD_TARGET",
+                 "%define BAD_TARGET \$ extra\ncall BAD_TARGET",
+                 'jmp','jmp $ extra','jmp short','jmp short $ extra','jmp $, $','jmp $,','jmp [rax,rbx]','jmp [rax]junk',
+                 'jne','jne $ extra','jne short','jne near $ extra','jne $, $','jne $,',
+                 'loop','loop $ extra','loop $, $','loop $,') {
+        put("$tmp/bad.basm","bits 64\nsection .text\n$bad\n");
+        put("$tmp/rejected.bin","preserved control-transfer output");
+        my $rc=run($basm,'--target-profile',$profile,'-f','bin','-o',"$tmp/rejected.bin","$tmp/bad.basm");
+        check($rc==256 && get("$tmp/rejected.bin") eq 'preserved control-transfer output',
+              "$profile rejects malformed $bad and preserves output");
+    }
+}
+put("$tmp/far-valid.basm","bits 16\nsection .text\njmp 8:target\njmp word 8:target\njmp dword 8:target\ntarget: ret\n");
+check(run($nasm,'-f','bin','-o',"$tmp/far-nasm.bin","$tmp/far-valid.basm")==0,
+      'NASM accepted valid far jumps');
+check(run($basm,'-f','bin','-o',"$tmp/far-basm.bin","$tmp/far-valid.basm")==0 &&
+      get("$tmp/far-basm.bin") eq get("$tmp/far-nasm.bin"),'valid far jumps match NASM');
+for my $bad ('jmp 8:target, 9','jmp dword, 8:target','jmp 8:target extra','jmp dword 8:target,') {
+    put("$tmp/bad.basm","bits 16\nsection .text\n$bad\ntarget: ret\n");
+    put("$tmp/rejected.bin","preserved far-jump output");
+    my $rc=run($basm,'-f','bin','-o',"$tmp/rejected.bin","$tmp/bad.basm");
+    check($rc==256 && get("$tmp/rejected.bin") eq 'preserved far-jump output',
+          "rejects malformed $bad and preserves output");
 }
 print "PASS intent encoding ($checks checks; all schema forms plus register cross-products)\n";
 PERL
