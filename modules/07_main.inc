@@ -561,9 +561,10 @@ static int run_batch(const char *self,const char *manifest,int concurrency) {
     g_file=in;
     g_srcname=in;   /* STT_FILE symbol name (NASM parity) */
     /* record the source directory for incbin relative resolution */
-    { const char *slash=strrchr(in,'/');
+    { const char *slash=strrchr(in,'/'); g_srcdir[0]=0;
       if(slash){ size_t n=(size_t)(slash-in); if(n>=sizeof(g_srcdir))die("source directory path too long");
-                 memcpy(g_srcdir,in,n); g_srcdir[n]=0; } }
+                 if(n){ memcpy(g_srcdir,in,n); g_srcdir[n]=0; }
+                 else { g_srcdir[0]='/'; g_srcdir[1]=0; } } }
     if(profile) tick=profile_now_ns();
     FILE*f=basm_open_regular(in); if(!f){if(g_json_diagnostics)die2("cannot open input",in);perror("fopen");return 1;}
     const BasmDependency *root_dependency=basm_snapshot_file(f,in,BASM_DEP_SOURCE);

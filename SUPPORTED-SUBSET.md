@@ -195,8 +195,10 @@ The v1 directive set is:
   are rejected. `tests/newcopypagegate.py` checks the unadjusted form and sized
   static functions; `tests/uaccess_isa_test.py` checks adjusted fields.
 - Layout: `align`, `alignb`, `org`, `bits`, `default rel`, `default abs`.
-- Files: `incbin FILE[, SKIP[, COUNT]]` and include lookup through source
-  directory, current directory, and `-I` paths.
+- Files: `incbin FILE[, SKIP[, COUNT]]`. Relative `%include` and `incbin`
+  names resolve through the top-level source directory, then the current
+  directory, then `-I` paths; nested includes retain that top-level source
+  base. Absolute dependency names are opened only as written.
 - Structures: `struc`, `endstruc`, `istruc`, `at`, `iend` with reserve fields.
 
 Section, text, data, relocation, symbol, include, macro, repetition, and line

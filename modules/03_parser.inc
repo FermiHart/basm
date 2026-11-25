@@ -777,7 +777,7 @@ static int handle_directive_or_label(char *line) {
     /* incbin "file" [,skip[,count]] — embed a binary file verbatim into the
      * current section (used by initramfs_blob.S to ride the cpio archive in
      * .rodata). The filename token retains its quotes from the tokenizer.
-     * Resolved relative to the including .asm's directory, then CWD, then -I
+     * Resolved relative to the top-level source directory, then CWD, then -I
      * paths. Author: F E R M I ∞ H A R T. */
     if (!strcmp(t0,"incbin")) return handle_incbin_directive();
     /* times <n> <data-or-reserve-directive> ... */
