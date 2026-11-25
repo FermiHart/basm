@@ -212,6 +212,11 @@ build/host/basm --target-profile public --explain \
 build/host/elftool audit hello.o
 ```
 
+General ELF inspection accepts regular files up to 64 MiB and uses one
+512 MiB allocation budget per invocation. `diff` shares that budget across
+both inputs and their normalized snapshots. Attestation has separate,
+operation-specific limits.
+
 The trace exposes source origins, emitted byte spans and modeling coverage.
 Unmodeled instructions remain explicitly marked. Trace bytes describe the
 object before link-time relocation.

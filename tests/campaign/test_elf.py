@@ -21,6 +21,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 U64_MAX = (1 << 64) - 1
 COMMANDS = ("secs", "sec", "syms", "relocs", "audit", "notes", "digest", "diff")
+SMALL_RESOURCE_HARNESS = False
 
 
 def elf_object(symbol="exported", *, bss_size=64, text_flags=6, text=b"\0" * 8 + b"\xc3",
@@ -299,6 +300,43 @@ class ElfTests(unittest.TestCase):
         struct.pack_into("<I", raw, headers[".rel.text"][0] + 44, 2)
         self.assertEqual(self.run_cmd("diff", a, self.save(raw)).returncode, 1)
 
+    def test_15_nonregular_and_oversized_inputs_are_rejected(self):
+        limit = 64 * 1024 if SMALL_RESOURCE_HARNESS else 64 * 1024 * 1024
+        oversized = self.dir / "oversized.o"
+        with oversized.open("wb") as stream:
+            stream.truncate(limit + 1)
+        fifo = self.dir / "input.fifo"
+        os.mkfifo(fifo)
+        for kind, path in (("oversized", oversized), ("nonregular", fifo)):
+            for cmd in COMMANDS:
+                with self.subTest(kind=kind, command=cmd):
+                    result = self.run_cmd(cmd, path)
+                    self.assertEqual(result.returncode, 1, (cmd, result.stdout, result.stderr))
+                    self.assertEqual(result.stdout, b"")
+                    self.assertIn(b"regular file within the ELF size limit", result.stderr)
+
+    def test_16_diff_inputs_share_one_allocation_budget(self):
+        if not SMALL_RESOURCE_HARNESS:
+            self.skipTest("production allocation limit is covered by the canonical-source harness")
+        raw, _ = elf_object(text=b"\x90" * (48 * 1024) + b"\xc3")
+        left, right = self.save(raw), self.save(raw)
+        self.assertEqual(self.run_cmd("digest", left).returncode, 0)
+        result = self.run_cmd("diff", left, right)
+        self.assertEqual(result.returncode, 1, (result.stdout, result.stderr))
+        self.assertEqual(result.stdout, b"")
+        self.assertIn(b"aggregate allocation limit", result.stderr)
+
+    def test_17_normalized_records_use_the_allocation_budget(self):
+        if not SMALL_RESOURCE_HARNESS:
+            self.skipTest("production allocation limit is covered by the canonical-source harness")
+        raw, _ = elf_object("g" * (60 * 1024))
+        path = self.save(raw)
+        self.assertEqual(self.run_cmd("syms", path).returncode, 0)
+        result = self.run_cmd("digest", path)
+        self.assertEqual(result.returncode, 1, (result.stdout, result.stderr))
+        self.assertEqual(result.stdout, b"")
+        self.assertIn(b"aggregate allocation limit", result.stderr)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -306,6 +344,7 @@ if __name__ == "__main__":
     parser.add_argument("--no-sanitize", action="store_true")
     args, remaining = parser.parse_known_args()
     with tempfile.TemporaryDirectory(prefix="bearbasm-elf-harness-") as build:
+        SMALL_RESOURCE_HARNESS = not args.binary
         BINARY = args.binary.resolve() if args.binary else Path(build) / "elf-harness"
         if not args.binary:
             cc = shlex.split(os.environ.get("CC", "cc"))
