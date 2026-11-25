@@ -43,7 +43,6 @@ static void sse_disp32(long value) {
 static void parse_mem(const char *tok, Mem *out) {
     int prefetch=g_bounded_sse || (g_ntok && (!strcmp(g_tok[0],"prefetcht0") || !strcmp(g_tok[0],"movnti")));
     if (!validate_operand_len(tok)) die2("parse_mem: operand exceeds max length", tok);
-    if (!validate_address_contents(tok)) die2("parse_mem: invalid operand chars", tok);
 
     Mem m; memset(&m,0,sizeof(m)); m.base=-1; m.scale=1;
     char buf[NAME_MAX];
@@ -53,8 +52,11 @@ static void parse_mem(const char *tok, Mem *out) {
     if (buf[0] != '[') die2("expected memory operand", tok);
     char *p = buf+1; char *end = strchr(p, ']');
     if (!end) die2("unterminated memory operand", tok);
-    if (prefetch && end[1]) die("prefetcht0: trailing memory operand text");
+    char *tail=end+1;
+    while (isspace((unsigned char)*tail)) tail++;
+    if (*tail) die2("parse_mem: trailing memory operand text", tok);
     *end = 0;
+    if (!validate_address_contents(buf)) die2("parse_mem: invalid operand chars", tok);
     while (*p==' ') p++;
     int force_abs = 0;
     if (!strncmp(p, "abs ", 4)) {
