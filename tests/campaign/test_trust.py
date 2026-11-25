@@ -13,6 +13,8 @@ import struct
 import subprocess
 import tempfile
 
+import perf_campaign
+
 
 def elf_sections(path):
     data = path.read_bytes()
@@ -235,6 +237,22 @@ def main():
         check('signer-a-differs', signed_a.read_bytes() != signed_b.read_bytes())
         check('signer-b-cold-warm-identical', signed_b.read_bytes() == fresh_b.read_bytes() == warm_b.read_bytes())
         check('no-persistent-tool-metadata-memo', not list((work / 'cache-b').glob('.tool-*.sha256')))
+        signed_a_note = perf_campaign.elf_sections(signed_a.read_bytes())['.note.TinaProof']['data']
+        signer_a = signed_a_note[2248:2280].hex()
+
+        linkage_src = work / 'linkage.basm'
+        linkage_src.write_text('bits 64\nextern external_target\nsection .text\nglobal entry\n'
+                               'entry:\ncall external_target\nret\n')
+        linkage_obj = work / 'signed-linkage.o'
+        assemble('signed-linkage-proof', linkage_obj,
+                 ['--emit-exec-proof', '--sign-exec-proof', seed_a], source=linkage_src)
+        linkage_bytes = linkage_obj.read_bytes()
+        note = perf_campaign.elf_sections(linkage_bytes)['.note.TinaProof']['data']
+        linkage_signer = note[2248:2280].hex()
+        check('linkage-proof-retains-requested-signer', linkage_signer == signer_a)
+        perf_campaign.validate_exec_note(linkage_bytes, basm, linkage_src, linkage_signer)
+        perf_campaign.validate_exec_note_mutations(linkage_bytes, basm, linkage_src, linkage_signer)
+        check('exec-proof-v2-binds-linkage-metadata', True)
 
         receipt = next(path for path in (work / 'cache-b').glob('*.receipt')
                        if ('output_sha256: ' + hashlib.sha256(signed_b.read_bytes()).hexdigest()) in path.read_text())
