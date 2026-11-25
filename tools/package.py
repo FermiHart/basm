@@ -5,6 +5,8 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import fcntl
 import gzip
 import hashlib
 import io
@@ -17,6 +19,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_ROOT_FILES = {
@@ -181,11 +184,10 @@ def complete_entries(entries: dict, metadata: dict) -> dict:
     return result
 
 
-def write_archive(destination: Path, prefix: str, entries: dict, epoch: int) -> None:
+def stage_archive(directory: Path, prefix: str, entries: dict, epoch: int) -> Path:
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", prefix):
         raise ValueError("unsafe archive prefix")
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    fd, name = tempfile.mkstemp(prefix=".bear-basm-", dir=destination.parent)
+    fd, name = tempfile.mkstemp(prefix=".bear-basm-archive-", dir=directory)
     temporary = Path(name)
     try:
         with os.fdopen(fd, "wb") as output:
@@ -202,9 +204,114 @@ def write_archive(destination: Path, prefix: str, entries: dict, epoch: int) -> 
             output.flush()
             os.fsync(output.fileno())
         temporary.chmod(0o644)
+        return temporary
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+def stage_bytes(directory: Path, content: bytes) -> Path:
+    fd, name = tempfile.mkstemp(prefix=".bear-basm-checksum-", dir=directory)
+    temporary = Path(name)
+    try:
+        with os.fdopen(fd, "wb") as output:
+            output.write(content)
+            output.flush()
+            os.fsync(output.fileno())
+        temporary.chmod(0o644)
+        return temporary
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+def write_archive(destination: Path, prefix: str, entries: dict, epoch: int) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = stage_archive(destination.parent, prefix, entries, epoch)
+    try:
         os.replace(temporary, destination)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+@contextlib.contextmanager
+def output_lock(directory: Path):
+    """Serialize publishers without trusting another directory entry as a lock."""
+    flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(directory, flags)
+    try:
+        opened = os.fstat(descriptor)
+        if not stat.S_ISDIR(opened.st_mode):
+            raise ValueError("package output must be a directory")
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        current = directory.stat(follow_symlinks=False)
+        if (opened.st_dev, opened.st_ino) != (current.st_dev, current.st_ino):
+            raise ValueError("package output directory changed while acquiring its lock")
+        yield
+    finally:
+        os.close(descriptor)
+
+
+def backup_entry(path: Path, token: str, label: str) -> Path | None:
+    if not os.path.lexists(path):
+        return None
+    backup = path.with_name(".bear-basm-backup-" + token + "-" + label)
+    os.link(path, backup, follow_symlinks=False)
+    return backup
+
+
+def publish_archive(destination: Path, prefix: str, entries: dict, epoch: int) -> Path:
+    """Publish an archive/checksum pair, restoring the previous pair on failure."""
+    directory = destination.parent
+    directory.mkdir(parents=True, exist_ok=True)
+    checksum_path = destination.with_name(destination.name + ".sha256")
+    archive_temporary = None
+    checksum_temporary = None
+    backups = {}
+    published = []
+    with output_lock(directory):
+        try:
+            archive_temporary = stage_archive(directory, prefix, entries, epoch)
+            checksum = (sha256(archive_temporary.read_bytes()) + "  " + destination.name + "\n").encode()
+            checksum_temporary = stage_bytes(directory, checksum)
+            token = uuid.uuid4().hex
+            backups[destination] = backup_entry(destination, token, "archive")
+            backups[checksum_path] = backup_entry(checksum_path, token, "checksum")
+            try:
+                os.replace(archive_temporary, destination)
+                archive_temporary = None
+                published.append(destination)
+                os.replace(checksum_temporary, checksum_path)
+                checksum_temporary = None
+                published.append(checksum_path)
+            except BaseException as publication_error:
+                rollback_errors = []
+                for target in reversed(published):
+                    backup = backups[target]
+                    try:
+                        if backup is None:
+                            target.unlink(missing_ok=True)
+                        else:
+                            os.replace(backup, target)
+                            backups[target] = None
+                    except OSError as exc:
+                        rollback_errors.append(f"{target}: {exc}")
+                if rollback_errors:
+                    raise OSError("package rollback failed; recovery backups retained: " +
+                                  "; ".join(rollback_errors)) from publication_error
+                raise
+            for backup in backups.values():
+                if backup is not None:
+                    backup.unlink(missing_ok=True)
+            return checksum_path
+        finally:
+            if archive_temporary is not None:
+                archive_temporary.unlink(missing_ok=True)
+            if checksum_temporary is not None:
+                checksum_temporary.unlink(missing_ok=True)
+            for target, backup in backups.items():
+                if backup is not None and target not in published:
+                    backup.unlink(missing_ok=True)
 
 
 def main() -> int:
@@ -232,10 +339,7 @@ def main() -> int:
                          "source_date_epoch": epoch, "integrity": "SHA-256 file inventory; unsigned development package"})
         payload = complete_entries(entries, metadata)
         archive = args.out_dir.resolve() / (name + ".tar.gz")
-        write_archive(archive, name, payload, epoch)
-        checksum = sha256(archive.read_bytes()) + "  " + archive.name + "\n"
-        checksum_path = archive.with_name(archive.name + ".sha256")
-        checksum_path.write_text(checksum, encoding="utf-8")
+        checksum_path = publish_archive(archive, name, payload, epoch)
         print(archive)
         print(checksum_path)
         return 0

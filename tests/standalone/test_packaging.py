@@ -189,6 +189,43 @@ class PackagingTests(unittest.TestCase):
                 data = archive.extractfile("bear-basm-test/" + record["path"]).read()
                 self.assertEqual(hashlib.sha256(data).hexdigest(), record["sha256"])
 
+    def test_checksum_symlink_is_replaced_without_touching_target(self):
+        entries = packager.complete_entries({"bin/basm": (b"binary", 0o755)},
+                                            {"version": "0.1.0-test", "kind": "binary"})
+        archive = self.root / "bear-basm-test.tar.gz"
+        checksum_path = archive.with_name(archive.name + ".sha256")
+        outside = self.root / "outside"
+        outside.write_bytes(b"outside sentinel\n")
+        checksum_path.symlink_to(outside)
+        published = packager.publish_archive(archive, "bear-basm-test", entries, 1234567890)
+        self.assertEqual(published, checksum_path)
+        self.assertFalse(checksum_path.is_symlink())
+        self.assertEqual(outside.read_bytes(), b"outside sentinel\n")
+        expected = hashlib.sha256(archive.read_bytes()).hexdigest() + "  " + archive.name + "\n"
+        self.assertEqual(checksum_path.read_text(encoding="utf-8"), expected)
+
+    def test_checksum_commit_failure_restores_previous_pair(self):
+        entries = packager.complete_entries({"bin/basm": (b"new binary", 0o755)},
+                                            {"version": "0.2.0-test", "kind": "binary"})
+        archive = self.root / "bear-basm-test.tar.gz"
+        checksum_path = archive.with_name(archive.name + ".sha256")
+        archive.write_bytes(b"previous archive\n")
+        checksum_path.write_bytes(b"previous checksum\n")
+        real_replace = packager.os.replace
+
+        def fail_checksum_commit(source, target):
+            if (Path(target) == checksum_path and
+                    Path(source).name.startswith(".bear-basm-checksum-")):
+                raise OSError(errno.ENOSPC, "injected full disk")
+            return real_replace(source, target)
+
+        with mock.patch.object(packager.os, "replace", side_effect=fail_checksum_commit):
+            with self.assertRaises(OSError):
+                packager.publish_archive(archive, "bear-basm-test", entries, 1234567890)
+        self.assertEqual(archive.read_bytes(), b"previous archive\n")
+        self.assertEqual(checksum_path.read_bytes(), b"previous checksum\n")
+        self.assertFalse(list(self.root.glob(".bear-basm-*")))
+
     def test_archive_traversal_is_refused(self):
         with self.assertRaises(ValueError):
             packager.complete_entries({"../outside": (b"x", 0o644)}, {})
