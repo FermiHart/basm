@@ -81,10 +81,25 @@ enum {
     SHT_SYMTAB   = 2,
     SHT_STRTAB   = 3,
     SHT_RELA     = 4,
+    SHT_HASH     = 5,
+    SHT_DYNAMIC  = 6,
     SHT_NOTE     = 7,
     SHT_NOBITS   = 8,
     SHT_REL      = 9,
     SHT_DYNSYM   = 11,
+    SHT_RELR     = 19,
+    SHT_ANDROID_REL  = 0x60000001,
+    SHT_ANDROID_RELA = 0x60000002,
+    SHT_ANDROID_RELR = 0x6fffff00,
+    SHT_SUNW_LDYNSYM = 0x6ffffff3,
+    SHT_GNU_HASH     = 0x6ffffff6,
+    SHT_GNU_LIBLIST  = 0x6ffffff7,
+    SHT_CHECKSUM     = 0x6ffffff8,
+    SHT_SUNW_SYMINFO = 0x6ffffffc,
+    SHT_GNU_VERDEF   = 0x6ffffffd,
+    SHT_GNU_VERNEED  = 0x6ffffffe,
+    SHT_GNU_VERSYM   = 0x6fffffff,
+    SHF_ALLOC    = 0x2,
     SYM_ENTSZ    = 24,
     RELA_ENTSZ   = 24,
     REL_ENTSZ    = 16
@@ -898,6 +913,44 @@ static int cmd_digest(const char *path) {
  * Exit: 0 all invariants hold, 1 violation.
  */
 
+static int section_name_in_family(const char *name, const char *family) {
+    size_t n = strlen(family);
+    return strncmp(name, family, n) == 0 &&
+           (name[n] == '\0' || name[n] == '.');
+}
+
+static int is_dynamic_section_name(const char *name) {
+    static const char *families[] = {
+        ".dynsym", ".dynstr", ".dynbss", ".dynamic", ".interp",
+        ".plt", ".iplt", ".got", ".igot", ".hash", ".gnu.hash",
+        ".rel.dyn", ".rela.dyn", ".relr.dyn",
+        ".rel.plt", ".rela.plt", ".rel.iplt", ".rela.iplt",
+        ".rel.got", ".rela.got", ".rel.igot", ".rela.igot",
+        ".gnu.liblist", ".gnu.conflict", ".gnu.prelink_undo", NULL
+    };
+    for (int i = 0; families[i]; i++)
+        if (section_name_in_family(name, families[i])) return 1;
+    return strncmp(name, ".gnu.version", sizeof(".gnu.version") - 1) == 0;
+}
+
+static int is_dynamic_section_type(uint32_t type) {
+    switch (type) {
+        case SHT_HASH: case SHT_DYNAMIC: case SHT_DYNSYM: case SHT_RELR:
+        case SHT_ANDROID_REL: case SHT_ANDROID_RELA: case SHT_ANDROID_RELR:
+        case SHT_SUNW_LDYNSYM: case SHT_GNU_HASH: case SHT_GNU_LIBLIST:
+        case SHT_CHECKSUM: case SHT_SUNW_SYMINFO: case SHT_GNU_VERDEF:
+        case SHT_GNU_VERNEED: case SHT_GNU_VERSYM:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+static int is_loader_reloc(const Sec *s) {
+    return is_reloc(s) && ((s->flags & SHF_ALLOC) ||
+           (s->link < g_nsecs && g_secs[s->link].type == SHT_DYNSYM));
+}
+
 static int cmd_audit(void) {
     int fails = 0;
 
@@ -907,21 +960,28 @@ static int cmd_audit(void) {
         fails++;
     }
 
-    /* A2: sovereignty — no dynamic machinery by name or type */
-    static const char *banned[] = {
-        ".dynsym", ".dynstr", ".dynamic", ".interp",
-        ".plt", ".got", ".got.plt", ".hash", ".gnu.hash", NULL
-    };
+    /* A2: sovereignty — ET_REL needs no loader-facing program headers. */
+    uint16_t phnum = rd16(0x38);
+    if (phnum) {
+        printf("AUDIT FAIL A2: %u program header(s) present\n",
+               (unsigned)phnum);
+        fails++;
+    }
+
+    /* Names cover PROGBITS families such as PLT/GOT; standardized types and
+     * relocation metadata cover renamed loader tables and dynamic relocs. */
     for (uint16_t i = 0; i < g_nsecs; i++) {
-        for (int b = 0; banned[b]; b++)
-            if (!strcmp(g_secs[i].name, banned[b])) {
-                printf("AUDIT FAIL A2: dynamic section %s present\n",
-                       g_secs[i].name);
-                fails++;
-            }
-        if (g_secs[i].type == 6 /*DYNAMIC*/ || g_secs[i].type == 11 /*DYNSYM*/) {
+        if (is_dynamic_section_name(g_secs[i].name)) {
+            printf("AUDIT FAIL A2: dynamic section %s present\n",
+                   g_secs[i].name);
+            fails++;
+        } else if (is_dynamic_section_type(g_secs[i].type)) {
             printf("AUDIT FAIL A2: section %s has dynamic type %u\n",
                    g_secs[i].name, g_secs[i].type);
+            fails++;
+        } else if (is_loader_reloc(&g_secs[i])) {
+            printf("AUDIT FAIL A2: relocation section %s is loader-facing\n",
+                   g_secs[i].name);
             fails++;
         }
     }
