@@ -79,6 +79,36 @@ def cases():
     ok("relative_field_same_section", "section .data\nfirst: db 7\ndd first - $\n", b"\x07" + b"\xff" * 4)
     ok("expression_cache_capacity", "section .data\n" + "".join(f"dq ({i}*3+7)\n" for i in range(1200)), pack(*(i*3+7 for i in range(1200))))
     ok("data_and_size_cache_domains", "section .data\ndq 1+2\ntimes 1+2 db 7\n", pack(3) + b"\x07" * 3)
+    ok("scalar_register_width_encodings", "bits 64\nsection .text\n" + "\n".join((
+        "inc ah", "inc spl", "inc ax", "inc r8w", "inc eax", "inc r8d", "inc rax", "inc r8",
+        "dec bh", "dec dil", "dec r15w", "dec r14d", "dec r13",
+        "neg ah", "mul spl", "imul r8w", "div r9d", "idiv r10",
+        "imul ax,cx", "imul r8w,r9w", "imul eax,ecx", "imul r10d,r11d",
+        "imul rax,rcx", "imul r12,r13", "imul r8w,[r9]",
+        "lea ax,[rbx]", "lea r8w,[r9]", "lea eax,[rbx]", "lea r8d,[r9]",
+        "lea rax,[rbx]", "lea r8,[r9]", "movsxd rax,eax", "movsxd r8,r9d",
+        "movsxd r10,[r11+8]")) + "\n",
+       bytes.fromhex("fec4 40fec4 66ffc0 6641ffc0 ffc0 41ffc0 48ffc0 49ffc0 "
+                     "fecf 40fecf 6641ffcf 41ffce 49ffcd "
+                     "f6dc 40f6e4 6641f7e8 41f7f1 49f7fa "
+                     "660fafc1 66450fafc1 0fafc1 450fafd3 480fafc1 4d0fafe5 66450faf01 "
+                     "668d03 66458d01 8d03 458d01 488d03 4d8d01 4863c0 4d63c1 4d635308"),
+       section=".text")
+
+    for name, instruction in (
+        ("imul_byte_pair", "imul al,cl"),
+        ("imul_word_dword", "imul ax,ecx"),
+        ("imul_dword_qword", "imul eax,rcx"),
+        ("imul_qword_dword", "imul rax,ecx"),
+        ("lea_byte", "lea al,[rax]"),
+        ("lea_high_byte", "lea ah,[rax]"),
+        ("movsxd_dword_destination", "movsxd eax,ecx"),
+        ("movsxd_qword_source", "movsxd rax,rcx"),
+        ("movsxd_word_destination", "movsxd ax,ecx"),
+        ("movsxd_word_source", "movsxd rax,cx"),
+        ("movsxd_byte_source", "movsxd rax,cl")):
+        bad("scalar_width_reject_" + name,
+            "bits 64\nsection .text\n" + instruction + "\n")
 
     for op in ("extern", "weak", "align", "alignb", "incbin", "default", "org", "db", "dw", "dd", "dq", "resb"):
         bad("arity_first_" + op, op + "\n")

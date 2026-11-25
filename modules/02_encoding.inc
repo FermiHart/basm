@@ -623,21 +623,39 @@ static void enc_mov_mem_imm(const char *szkw, const char *memtok, const char *im
     emit_expr_field(width,type,imm,ihs,isec,iglob,inm);
 }
 
+/* Scalar GPR encoders share the register vocabulary across BITS modes.  REX
+ * registers and r64 names are encodable only in long mode; accepting them in
+ * BITS 16/32 would silently select a legacy register with the same low bits. */
+static int scalar_reg_in_mode(const Reg *r) {
+    return r && (g_bits==64 || (r->size!=8 && r->num<8 && !r->rex_req));
+}
+
+static void emit_scalar_opsize(const Reg *r) {
+    if(r->size==2)emit_opsize(16);
+    else if(r->size==4)emit_opsize(32);
+}
+
 static void enc_lea(const char *dst, const char *src) {
     const Reg *rd = reg_find(dst);
-    if (!rd || !is_mem(src)) die("unsupported lea form");
+    if (!scalar_reg_in_mode(rd) || rd->size==1 || !is_mem(src))
+        die("lea needs an encodable r16/r32/r64 destination and memory source");
     Mem m; parse_mem(src, &m); int rr=(rd->num>=8),rx,rb; mem_begin(&m,&rx,&rb);
+    emit_scalar_opsize(rd);
     emit_rex(rd->size==8,rr,rx,rb,0); emit(0x8d); encode_mem(rd->num, &m,0);
 }
 
 /* movsxd r64, r/m32  (4c 63 /r) */
 static void enc_movsxd(const char *dst, const char *src) {
     const Reg *rd=reg_find(dst), *rs=reg_find(src);
-    if (!rd) die("movsxd dst not reg");
-    if (rs) { emit_rex(1,(rd->num>=8),0,(rs->num>=8),0); emit(0x63); emit_modrm(3,rd->num,rs->num); return; }
+    if (g_bits!=64 || !rd || rd->size!=8)
+        die("movsxd needs an r64 destination in BITS 64");
+    if (rs) {
+        if(rs->size!=4)die("movsxd register source must be r32");
+        emit_rex(1,(rd->num>=8),0,(rs->num>=8),0); emit(0x63); emit_modrm(3,rd->num,rs->num); return;
+    }
     if (is_mem(src)) { Mem m; parse_mem(src, &m); int rx,rb; mem_begin(&m,&rx,&rb);
         emit_rex(1,(rd->num>=8),rx,rb,0); emit(0x63); encode_mem(rd->num, &m,0); return; }
-    die("movsxd src");
+    die("movsxd source must be r32 or memory");
 }
 
 /* N05: NASM 3.02's legacy MOVSX/MOVZX forms include same-width forms
@@ -908,13 +926,16 @@ static void enc_shift(int ext, const char *dst, const char *src) {
 /* inc/dec : reg (FF /0, /1) or  <size> [mem] */
 static void enc_incdec(int ext, int ntok) {
     if (ntok==2) { /* inc reg */
-        const Reg *rd=reg_find(g_tok[1]); if(!rd) die("inc/dec reg");
+        const Reg *rd=reg_find(g_tok[1]);
+        if(!scalar_reg_in_mode(rd))die("inc/dec register is not encodable in this BITS mode");
+        emit_scalar_opsize(rd);
         /* BUG-01: In BITS 16/32, use short form (0x40+rd for inc, 0x48+rd for dec) */
         if (g_bits != 64 && rd->size != 1 && rd->num < 8) {
             emit((ext == 0 ? 0x40 : 0x48) + rd->num);
             return;
         }
-        emit_rex(rd->size==8,0,0,(rd->num>=8),0); emit(rd->size==1?0xfe:0xff); emit_modrm(3,ext,rd->num); return;
+        emit_rex(rd->size==8,0,0,(rd->num>=8),rd->rex_req);
+        emit(rd->size==1?0xfe:0xff); emit_modrm(3,ext,rd->num); return;
     }
     /* inc <size> [mem] : 3 tokens (mnemonic, size, [mem]) */
     const char *szkw=g_tok[1]; Mem m; parse_mem(g_tok[2], &m); int rx,rb; mem_begin(&m,&rx,&rb);
@@ -926,17 +947,24 @@ static void enc_incdec(int ext, int ntok) {
     encode_mem(ext, &m, 0);
 }
 
-/* neg/mul/imul1/div : F7 /3 neg, /4 mul, /5 imul, /6 div, /7 idiv */
+/* neg/mul/imul1/div : F6 for byte, F7 for word/dword/qword. */
 static void enc_unary_grp3(int ext, const char *r) {
-    const Reg *rd=reg_find(r); if(!rd) die("grp3 needs reg");
-    emit_rex(rd->size==8,0,0,(rd->num>=8),0); emit(0xf7); emit_modrm(3,ext,rd->num);
+    const Reg *rd=reg_find(r);
+    if(!scalar_reg_in_mode(rd))die("grp3 register is not encodable in this BITS mode");
+    emit_scalar_opsize(rd);
+    emit_rex(rd->size==8,0,0,(rd->num>=8),rd->rex_req);
+    emit(rd->size==1?0xf6:0xf7); emit_modrm(3,ext,rd->num);
 }
 /* imul r, r/m  (two-operand 0F AF /r) — also handles imul r, [mem] */
 static void enc_imul2(const char *dst, const char *src) {
-    const Reg *rd=reg_find(dst); if(!rd) die("imul2 dst");
+    const Reg *rd=reg_find(dst);
+    if(!scalar_reg_in_mode(rd) || rd->size==1)die("imul2 needs an encodable r16/r32/r64 destination");
     const Reg *rs=reg_find(src);
     if (rs) {
         /* reg, reg */
+        if(!scalar_reg_in_mode(rs) || rs->size!=rd->size)
+            die("imul2 requires same-width encodable registers");
+        emit_scalar_opsize(rd);
         emit_rex(rd->size==8,(rd->num>=8),0,(rs->num>=8),0); emit(0x0f); emit(0xaf);
         emit_modrm(3,rd->num,rs->num);
         return;
@@ -944,7 +972,8 @@ static void enc_imul2(const char *dst, const char *src) {
     /* reg, [mem] — 0F AF /r with r/m = mem */
     if (is_mem(src)) {
         Mem m; parse_mem(src, &m); int rx,rb; mem_begin(&m,&rx,&rb);
-       emit_rex(rd->size==8,(rd->num>=8),rx,rb,0); emit(0x0f); emit(0xaf);
+        emit_scalar_opsize(rd);
+        emit_rex(rd->size==8,(rd->num>=8),rx,rb,0); emit(0x0f); emit(0xaf);
         encode_mem(rd->num, &m, 0);
         return;
     }
@@ -1774,9 +1803,11 @@ static void enc_imul_dispatch(void) {
         if (reg_find(g_tok[2])) enc_imul2(g_tok[1],g_tok[2]);
         else if (is_mem(g_tok[2])) enc_imul2(g_tok[1],g_tok[2]);
         else {
-            const Reg*rd=reg_find(g_tok[1]); if(!rd || rd->size==1)die("imul immediate needs r16/r32/r64");
+            const Reg*rd=reg_find(g_tok[1]);
+            if(!scalar_reg_in_mode(rd) || rd->size==1)
+                die("imul immediate needs an encodable r16/r32/r64 register");
             ImmediateExpr imm; parse_immediate(g_tok[2],&imm);
-            if(rd->size==2)emit_opsize(16); else if(rd->size==4)emit_opsize(32);
+            emit_scalar_opsize(rd);
             emit_rex(rd->size==8,(rd->num>=8),0,(rd->num>=8),0);
             int short_field=immediate_is_absolute(&imm) && fits_imm8(imm.value);
             emit(short_field ? 0x6b : 0x69); emit_modrm(3,rd->num,rd->num);
