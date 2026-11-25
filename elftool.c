@@ -1468,16 +1468,15 @@ static int attest_one(const char *path,int strict,const uint8_t *prev_out,
     sha256_final(&s, calc);
     if (memcmp(calc, mh, 32)) { printf("ATTEST FAIL %s: merkle_node_id inconsistent\n", path); fails++; }
 
-    /* 2. Recompute source/output hashes from disk when present. */
+    /* 2. Recompute source/output hashes from disk. Verification cannot confirm
+     * a recorded identity when either artifact is unavailable or invalid. */
     uint8_t fh[32];
     if (attest_sha_file_limit(src_path,ATTEST_SOURCE_MAX,fh)) {
         if (memcmp(fh, sh, 32)) { printf("ATTEST FAIL %s: source hash mismatch (%s)\n", path, src_path); fails++; }
-    } else if (strict) { printf("ATTEST FAIL %s: source missing (%s)\n", path, src_path); fails++; }
-    else printf("ATTEST NOTE %s: source not on disk, recorded hash only (%s)\n", path, src_path);
+    } else { printf("ATTEST FAIL %s: cannot hash source (%s)\n", path, src_path); fails++; }
     if (attest_sha_file(out_path, fh)) {
         if (memcmp(fh, oh, 32)) { printf("ATTEST FAIL %s: output hash mismatch (%s)\n", path, out_path); fails++; }
-    } else if (strict) { printf("ATTEST FAIL %s: output missing (%s)\n", path, out_path); fails++; }
-    else printf("ATTEST NOTE %s: output not on disk, recorded hash only (%s)\n", path, out_path);
+    } else { printf("ATTEST FAIL %s: cannot hash output (%s)\n", path, out_path); fails++; }
 
     /* 3. Chain custody: previous stage's output must be this stage's tool. */
     if (prev_out) {
