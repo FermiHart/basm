@@ -79,6 +79,7 @@ def cases():
     ok("relative_field_same_section", "section .data\nfirst: db 7\ndd first - $\n", b"\x07" + b"\xff" * 4)
     ok("expression_cache_capacity", "section .data\n" + "".join(f"dq ({i}*3+7)\n" for i in range(1200)), pack(*(i*3+7 for i in range(1200))))
     ok("data_and_size_cache_domains", "section .data\ndq 1+2\ntimes 1+2 db 7\n", pack(3) + b"\x07" * 3)
+    ok("complete_memory_operand", "section .text\nmov rax,[rbx] ; comment\n", b"\x48\x8b\x03", section=".text")
 
     for op in ("extern", "weak", "align", "alignb", "incbin", "default", "org", "db", "dw", "dd", "dq", "resb"):
         bad("arity_first_" + op, op + "\n")
@@ -104,6 +105,16 @@ def cases():
     bad("unclosed_backtick_escape", "section .data\ndb `abc\\\n")
     bad("unclosed_memory", "section .text\nmov rax,[rbx\n")
     bad("extra_memory_close", "section .text\nmov rax,[rbx]]\n")
+    for name, instruction in (
+        ("mov", "mov rax,[rbx]junk"),
+        ("lea", "lea rax,[rbx][rcx]"),
+        ("alu", "add rax,[rbx]junk"),
+        ("unary", "inc qword [rbx]junk"),
+        ("indirect", "jmp [rbx]junk"),
+        ("macro_whitespace", "%define BAD [rbx] junk\nmov rax,BAD"),
+    ):
+        bad("trailing_memory_" + name, "section .text\n" + instruction + "\n",
+            "trailing memory operand text")
     bad("recursive_unary_budget", "section .data\ndq " + "-" * 140 + "1\n", "expression nesting too deep")
     bad("separate_numeric_terms", "section .data\nresb 1 2\n")
     bad("data_missing_comma", "section .data\ndb 1 2\n")
