@@ -250,7 +250,10 @@ and undocumented context-stack facilities are outside v1.
 - Sizes: `byte`, `word`, `dword`, `qword` where an encoder requires an explicit
   memory or source width.
 - Branches: inferred width plus explicit `short` and `near` where supported;
-  the layout engine converges until all branch targets are stable.
+  the layout engine converges until all branch targets are stable. CALL, JMP,
+  Jcc and LOOP require one comma-free target; branch width qualifiers must be
+  followed by that target. Far JMP retains its optional `word`/`dword`
+  selector:offset expression as one logical target and rejects extra operands.
 
 Mnemonic membership does not imply every NASM operand cross-product. The
 accepted forms are the fail-closed forms implemented by that mnemonic's

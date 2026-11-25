@@ -1238,15 +1238,42 @@ static void enc_alu_dispatch(int ext) {
     else enc_alu(ext,g_tok[1],g_tok[2]);
 }
 
+static void control_transfer_separators(void) {
+    if (g_token_trailing_comma || source_commas())
+        die("control transfer operands must not use commas");
+    for (int i=0;i<g_ntok;i++)
+        if (g_tok_precomma[i] || strchr(g_tok[i],','))
+            die("control transfer operands must not use commas");
+}
+
+static void control_transfer_token_target(const char *target) {
+    for (const char *p=target;*p;p++)
+        if (char_in(*p," \t")) die("control transfer target must be one token");
+}
+
+static const char *control_transfer_target(void) {
+    if (g_ntok!=2) die("control transfer requires exactly one target");
+    control_transfer_separators();
+    control_transfer_token_target(g_tok[1]);
+    return g_tok[1];
+}
+
 static int branch_force_arg(int *target_index) {
-    if (g_ntok > 2 && !strcmp(g_tok[1],"short")) { *target_index=2; return 0; }
-    if (g_ntok > 2 && !strcmp(g_tok[1],"near"))  { *target_index=2; return 1; }
-    *target_index=1; return -1;
+    control_transfer_separators();
+    if (g_ntok==2 && strcmp(g_tok[1],"short") && strcmp(g_tok[1],"near")) {
+        *target_index=1; return -1;
+    }
+    if (g_ntok==3 && !strcmp(g_tok[1],"short")) { *target_index=2; return 0; }
+    if (g_ntok==3 && !strcmp(g_tok[1],"near"))  { *target_index=2; return 1; }
+    die("branch requires one target with an optional short or near qualifier");
+    return -1;
 }
 
 /* INV-586: share operand dispatch rather than spilling it for every Jcc. */
 static void enc_jcc_dispatch(int cc) {
-    int ti; int force=branch_force_arg(&ti); enc_jcc(cc,g_tok[ti],force);
+    int ti; int force=branch_force_arg(&ti);
+    control_transfer_token_target(g_tok[ti]);
+    enc_jcc(cc,g_tok[ti],force);
 }
 
 static int vec_reg(const char *s, int *is_ymm) {
@@ -1757,14 +1784,26 @@ static void enc_prefetcht0_dispatch(void) {
 }
 
 static void enc_jmp_dispatch(void) {
+    control_transfer_separators();
+    if (g_ntok<2) die("jmp requires a target");
     int has_colon=0; for(int k=1;k<g_ntok;k++) if(strchr(g_tok[k],':')){has_colon=1;break;}
-    if (g_ntok>2 && (has_colon || is_size_kw(g_tok[1]))) {
+    if (g_ntok>2 && has_colon) {
         char j[256]; size_t jl=0; j[0]=0;
         for (int k=1;k<g_ntok;k++){ size_t tl=strlen(g_tok[k]);
-            if (jl+tl<sizeof(j)-1){ memcpy(j+jl,g_tok[k],tl); jl+=tl; j[jl]=0; }
-            if (k==1 && is_size_kw(g_tok[k]) && jl<sizeof(j)-1){ j[jl++]=' '; j[jl]=0; } }
+            size_t separator=k>1;
+            if (tl+separator>sizeof(j)-1-jl) die("jmp target expression too long");
+            if (separator) j[jl++]=' ';
+            memcpy(j+jl,g_tok[k],tl); jl+=tl; j[jl]=0; }
         enc_jmp(j,-1);
-    } else { int ti; int force=branch_force_arg(&ti); enc_jmp(g_tok[ti],force); }
+    } else {
+        if (is_size_kw(g_tok[1])) die("sized far jmp requires a selector:offset target");
+        int ti; int force=branch_force_arg(&ti); const char *target=g_tok[ti];
+        if (is_mem(target)) {
+            size_t length=strlen(target);
+            if (!length || target[length-1]!=']') die("jmp memory target has trailing text");
+        } else if (!strchr(target,':')) control_transfer_token_target(target);
+        enc_jmp(target,force);
+    }
 }
 
 static void enc_imul_dispatch(void) {
@@ -2112,7 +2151,7 @@ static void do_instruction_body(void) {
     break;
     case INSN_call:
     {
-        enc_call(g_tok[1]);
+        enc_call(control_transfer_target());
     }
     break;
     case INSN_dec:
@@ -2245,7 +2284,7 @@ static void do_instruction_body(void) {
     break;
     case INSN_loop:
     {
-        enc_loop(g_tok[1]);
+        enc_loop(control_transfer_target());
     }
     break;
     case INSN_lea:
