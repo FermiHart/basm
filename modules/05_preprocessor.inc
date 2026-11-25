@@ -744,11 +744,6 @@ static void pp_process_line(const char *line, int depth){
 /* trimmed start of a line buffer */
 static const char *pp_trim(const char *q){ while(char_in(*q, " \t"))q++; return q; }
 
-/* Conditional-assembly frame.  active==1 means the current branch is being
- * emitted; matched==1 means some earlier branch in this %if was true, so
- * later %elif/%else must stay off. */
-typedef struct { int active; int matched; int else_seen; } PPFrame;
-
 /* True if `name` is a currently-defined preprocessor symbol (%define or
  * %assign). */
 static int pp_is_defined(const char *name){
@@ -848,8 +843,6 @@ static const char *pp_read_include_file(const char *fname, long *out_size, int *
     return (const char *)dep->data;
 }
 
-typedef struct { PPFrame frame[64]; int fsp,nfalse; } PPContext;
-
 /* INV-596: scanners jump over macro/rep/struc bodies. Count physical newlines
  * with one monotonic cursor, including body scans that can themselves fail. */
 static void pp_trace_raw(const char **cursor,int *line,const char *at,int file,int parent){
@@ -884,7 +877,7 @@ static char *pp_read_body(const char *start, const char *ending, const char **af
     return body;
 }
 
-static void pp_process_buffer(const char *src,int include_depth,PPContext *ctx,int file,int parent){
+static void pp_process_buffer(const char *src,int include_depth,ConditionalState *ctx,int file,int parent){
     if(include_depth>INCLUDE_DEPTH)die("include depth exceeded");
     const char *p=src;
     const char *trace_cursor=src; int trace_line=1;
@@ -920,57 +913,31 @@ static void pp_process_buffer(const char *src,int include_depth,PPContext *ctx,i
         if(is_if_directive){
             const char *body = pp_trim(q + (is_elif ? 5 : 3));
             int cond = pp_eval_cond(body);
-            /* Parent frames must all be active for this branch to fire. */
-            int parent_active = (ctx->nfalse == 0);
             if(!is_elif){
-                if(ctx->fsp>=64) die("%if nesting too deep");
-                ctx->frame[ctx->fsp].active = parent_active && cond;
-                ctx->frame[ctx->fsp].matched = ctx->frame[ctx->fsp].active;
-                ctx->frame[ctx->fsp].else_seen=0;
-                ctx->fsp++;
-                if(!ctx->frame[ctx->fsp-1].active) ctx->nfalse++;
+                conditional_open(ctx,cond);
             } else {
-                if(ctx->fsp<=0) die("%elif without %if");
-                PPFrame *fr = &ctx->frame[ctx->fsp-1];
+                if(ctx->depth<=0) die("%elif without %if");
+                ConditionalFrame *fr = &ctx->frame[ctx->depth-1];
                 if (fr->else_seen) die("%elif after %else");
-                /* Ancestors active?  The current frame itself may be inactive,
-                 * in which case nfalse counts it; allow that one. */
-                int ancestors_active = (ctx->nfalse == 0) || (ctx->nfalse == 1 && !fr->active);
-                if(fr->matched || !ancestors_active){
-                    if(fr->active){ fr->active = 0; ctx->nfalse++; }
-                } else {
-                    fr->active = ancestors_active && cond;
-                    if(fr->active){ fr->matched = 1; if(ctx->nfalse>0) ctx->nfalse--; }
-                }
+                conditional_elif(ctx,cond);
             }
             if(!next)break; p=next; continue;
         }
         if(pp_keyword(q,"%else",1)){
             pp_require_end(q+5,"%else takes no arguments");
-            if(ctx->fsp<=0) die("%else without %if");
-            PPFrame *fr = &ctx->frame[ctx->fsp-1];
+            if(ctx->depth<=0) die("%else without %if");
+            ConditionalFrame *fr = &ctx->frame[ctx->depth-1];
             if (fr->else_seen) die("duplicate %else");
-            fr->else_seen=1;
-            int parent_active = (ctx->nfalse == 0 || (!fr->active && ctx->nfalse == 1));
-            if(fr->matched){
-                if(fr->active){ fr->active = 0; ctx->nfalse++; }
-            } else {
-                if(parent_active){
-                    if(!fr->active){ fr->active = 1; if(ctx->nfalse>0) ctx->nfalse--; }
-                }
-            }
-            fr->matched = 1;
+            conditional_else(ctx);
             if(!next)break; p=next; continue;
         }
         if(pp_keyword(q,"%endif",1)){
             pp_require_end(q+6,"%endif takes no arguments");
-            if(ctx->fsp<=0) die("%endif without %if");
-            ctx->fsp--;
-            PPFrame *fr = &ctx->frame[ctx->fsp];
-            if(!fr->active) ctx->nfalse--;
+            if(ctx->depth<=0) die("%endif without %if");
+            conditional_close(ctx);
             if(!next)break; p=next; continue;
         }
-        if(ctx->nfalse>0){ if(!next)break; p=next; continue; } /* inside a dead block */
+        if(!conditional_active(ctx)){ if(!next)break; p=next; continue; } /* inside a dead block */
         if(pp_keyword(q,"%error",1)) {
             char message[BASM_LINE_CAP];
             pp_subst_defines(pp_trim(q+6),message,sizeof(message));
@@ -1324,10 +1291,10 @@ static char *preprocess(char *src,long sz){
     if (pp_cap>PP_OUTPUT_BYTES_MAX) pp_cap=PP_OUTPUT_BYTES_MAX;
     pp_out=malloc(pp_cap); if(!pp_out)die("oom in preprocessor");
     pp_len=0; g_line=0;
-    PPContext ctx; memset(&ctx,0,sizeof(ctx));
+    ConditionalState ctx; memset(&ctx,0,sizeof(ctx));
     int file=intent_file_intern(g_srcname);
     pp_process_buffer(src,0,&ctx,file,0);
-    if(ctx.fsp!=0)die("unterminated %if");
+    if(ctx.depth!=0)die("unterminated %if");
     pp_emit_ch(0);
     free(src);
     char *result=pp_out;
