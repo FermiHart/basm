@@ -664,9 +664,10 @@ static int run_batch(const char *self,const char *manifest,int concurrency) {
          * mid-write must never leave a truncated object at the final
          * path: make would treat it as fresh and link garbage (stale-
          * artifact poisoning). The writer targets a sibling temp; only a
-         * fully-written, successfully closed object is renamed over the target.
-         * The cleanup funnel is armed only after exclusive creation. Signals
-         * may strand an owned temporary; no handler rolls back a published file. */
+         * fully-written, successfully closed object is renamed over the target,
+         * after any requested explanation has also flushed successfully. The
+         * cleanup funnel is armed only after exclusive creation. Signals may
+         * strand an owned temporary; no handler rolls back a published file. */
         {
             output_paths_check(out,attest);
             char tmp_out[1050];
@@ -685,13 +686,23 @@ static int run_batch(const char *self,const char *manifest,int concurrency) {
                 fclose(object); die("rel8 escrow publication failed");
             }
             if(fclose(object)!=0)die("write error");
+            if(profile){
+                unsigned long long now=profile_now_ns(); write_ns=now-tick; tick=now;
+            }
+            if(explain_requested){
+                intent_trace_write(stdout);
+                if(fflush(stdout)!=0 || ferror(stdout))die("cannot complete intent explanation");
+            }
+            if(profile){
+                unsigned long long now=profile_now_ns();
+                explain_ns=explain_requested?now-tick:0; tick=now;
+            }
             if(rename(tmp_out,out)!=0)die("cannot publish output");
             g_out_tmp[0]=0; g_out_tmp_len=0;
+            if(profile){
+                unsigned long long now=profile_now_ns(); write_ns+=now-tick; tick=now;
+            }
         }
-    }
-    if(profile){
-        unsigned long long now=profile_now_ns();
-        write_ns=rel8_hit?0:now-tick; tick=now;
     }
 
     /* INV-C11: evidence is completed and signed in an owned sibling temporary.
@@ -702,14 +713,6 @@ static int run_batch(const char *self,const char *manifest,int concurrency) {
         attestation_ns=attest?now-tick:0; tick=now;
     }
 
-    if(explain_requested){
-        intent_trace_write(stdout);
-        if(fflush(stdout)!=0 || ferror(stdout))die("cannot complete intent explanation");
-    }
-    if(profile){
-        unsigned long long now=profile_now_ns();
-        explain_ns=explain_requested?now-tick:0; tick=now;
-    }
     int output_payload_bytes=g_textlen+g_datalen+g_rodatalen;
     intent_trace_free();
     free(src);

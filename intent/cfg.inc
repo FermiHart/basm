@@ -24,6 +24,16 @@ static int intent_cfg_find(const int *index, int lo, int hi, int64_t offset) {
     return lo;
 }
 
+static int intent_cfg_relocation_width(int reltype) {
+    switch (reltype) {
+        case 1: return 8;                 /* R_X86_64_64 */
+        case 2: case 10: case 11: return 4; /* PC32, 32, 32S */
+        case 12: return 2;                /* R_X86_64_16 */
+        case 14: return 1;                /* R_X86_64_8 */
+        default: return 0;
+    }
+}
+
 static int intent_cfg_control(const IntentRecord *r, int64_t *disp) {
     const char *name;
     const uint8_t *b = intent_record_bytes(r, &name);
@@ -71,7 +81,7 @@ static void intent_cfg_write(FILE *out) {
     for (int i = 0; i < g_nrelocs; i++) {
         Reloc *r = &g_relocs[i];
         if (r->section < 0 || r->section >= SEC_MAX || r->offset < 0 ||
-            (r->reltype != 1 && r->reltype != 2 && r->reltype != 10 && r->reltype != 11))
+            !intent_cfg_relocation_width(r->reltype))
             die("intent cfg invalid relocation");
     }
     for (int s = 0; s < SEC_MAX; s++) { base[s+1] += base[s]; cursor[s] = base[s]; }
@@ -85,7 +95,7 @@ static void intent_cfg_write(FILE *out) {
         Reloc *rel = &g_relocs[i];
         int lo = base[rel->section], hi = base[rel->section+1];
         int p = intent_cfg_find(index, lo, hi, rel->offset);
-        int64_t end = (int64_t)rel->offset + (rel->reltype == 1 ? 8 : 4);
+        int64_t end = (int64_t)rel->offset + intent_cfg_relocation_width(rel->reltype);
         if (p > lo) p--;
         while (p < hi) {
             IntentRecord *r = &g_intent_records[index[p] & (INTENT_TRACE_MAX - 1)];

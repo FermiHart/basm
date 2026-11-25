@@ -29,6 +29,23 @@ sub run {
     waitpid($pid, 0);
     return ($?, get("$tmp/stdout"), get("$tmp/stderr"));
 }
+sub run_broken_stdout {
+    my (@args) = @_;
+    pipe(my $reader, my $writer) or die $!;
+    close $reader or die $!; # no reader: writes fail with EPIPE
+    my $pid = fork(); defined $pid or die $!;
+    if (!$pid) {
+        $SIG{PIPE} = 'IGNORE';
+        open STDOUT, '>&', $writer or die $!;
+        close $writer or die $!;
+        open STDERR, '>:raw', "$tmp/stderr" or die $!;
+        exec {$basm} $basm, @args;
+        die "exec $basm: $!";
+    }
+    close $writer or die $!;
+    waitpid($pid, 0);
+    return ($?, get("$tmp/stderr"));
+}
 
 # Optional isolated helper verification while main's integration is pending.
 # No shared binary, object, Makefile target or global gate is touched.
@@ -301,6 +318,17 @@ check($d->{message} =~ /outside traced preprocessor/, 'deferred include explicit
 put($source, "%rep 65537\nnop\n%endrep\n");
 $d = rejected($source, '--explain');
 check($d->{message} =~ /intent .*limit/, 'bounded origin/record allocation refuses excess');
+
+put($source, "bits 64\nsection .text\nnop\n");
+my $preserved = "$tmp/preserved.o";
+my $sentinel = "prior published object must survive explanation failure\n";
+put($preserved, $sentinel);
+my ($publish_rc, $publish_err) = run_broken_stdout('--target-profile', 'public', '--explain',
+    '-f', 'elf64', '-o', $preserved, $source);
+check($publish_rc != 0 && get($preserved) eq $sentinel,
+      'failed explanation preserves the prior object');
+check($publish_err =~ /cannot (?:write|complete) intent explanation/,
+      'broken explanation sink reports failure');
 
 print "PASS intent trace: $checks structural checks; partial CFG, semantic verification unimplemented\n";
 PERL

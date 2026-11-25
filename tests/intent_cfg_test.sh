@@ -200,6 +200,14 @@ $v = explain("call worker\nnop\nworker:\nret\n");
 edge($v, 1, 'call', 3);
 edge($v, 1, 'call-continuation', 2);
 
+# Parser-emittable byte and word relocations occupy only their declared fields;
+# adjacent instructions remain ordinary CFG nodes rather than relocation spans.
+$v = explain("extern external\ndb external\nnop\ndw external\nnop\n");
+check($v->{records}[0]{offset} == 1 && $v->{records}[1]{offset} == 4,
+      'byte and word relocation field widths');
+edge($v, 1, 'fallthrough', undef, 'not-instruction-start');
+edge($v, 2, 'fallthrough', undef, 'not-instruction-start');
+
 $v = explain("jmp near nearself\nnearself:\njmp near nearself\nloopself:\nloop loopself\nret\n");
 check($v->{records}[0]{bytes} =~ /^e9/ && $v->{records}[1]{bytes} eq 'e9fbffffff', 'near jump encodings');
 edge($v, 1, 'jump', 2);
