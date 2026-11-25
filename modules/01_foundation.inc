@@ -339,8 +339,48 @@ static void macro_add(const char *name, const char *value) {
 static struct { char *buf; char *p; char fname[1024]; } g_inc_stack[INCLUDE_DEPTH];
 static int g_inc_depth = 0;
 
-/* Conditional assembly state */
-static int g_if_stack[64]; static int g_if_depth=0; static int g_if_active=1;
+/* Conditional assembly state shared by the source preprocessor and deferred
+ * macro/repetition directives.  Each frame carries its parent's activity so
+ * closing a nested frame cannot reconstruct activity from stale branch state. */
+typedef struct {
+    int parent_active;
+    int active;
+    int matched;
+    int else_seen;
+} ConditionalFrame;
+
+typedef struct { ConditionalFrame frame[64]; int depth; } ConditionalState;
+
+static int conditional_active(const ConditionalState *state) {
+    return state->depth == 0 || state->frame[state->depth-1].active;
+}
+
+static void conditional_open(ConditionalState *state, int condition) {
+    if (state->depth >= 64) die("%if nesting too deep");
+    int parent_active=conditional_active(state);
+    ConditionalFrame *frame=&state->frame[state->depth++];
+    frame->parent_active=parent_active;
+    frame->active=frame->parent_active && condition;
+    frame->matched=frame->active;
+    frame->else_seen=0;
+}
+
+static void conditional_elif(ConditionalState *state, int condition) {
+    ConditionalFrame *frame=&state->frame[state->depth-1];
+    frame->active=frame->parent_active && !frame->matched && condition;
+    if (frame->active) frame->matched=1;
+}
+
+static void conditional_else(ConditionalState *state) {
+    ConditionalFrame *frame=&state->frame[state->depth-1];
+    frame->active=frame->parent_active && !frame->matched;
+    frame->matched=1;
+    frame->else_seen=1;
+}
+
+static void conditional_close(ConditionalState *state) { state->depth--; }
+
+static ConditionalState g_if_state;
 
 static char g_last_global[NAME_MAX]; /* most recent non-local label, for ".x" qualification */
 

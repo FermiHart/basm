@@ -700,36 +700,37 @@ static int handle_directive_or_label(char *line) {
     /* %if / %elif / %else / %endif - simple conditional assembly */
     if (!strcmp(t0,"%if")) {
         if (g_ntok<2) die("%if requires an expression");
-        if (g_if_depth >= 64) die("%if nesting too deep");
         char condition[512]; basm_join_tokens(1,g_ntok,condition,sizeof(condition));
-        long val = g_if_active && g_ntok>=2 ? parse_condition(condition) : 0;
-        int new_active = (val != 0) && g_if_active;
-        g_if_stack[g_if_depth] = g_if_active ? (val ? 1 : 2) : 3;
-        g_if_depth++; g_if_active = new_active;
+        long val = conditional_active(&g_if_state) ? parse_condition(condition) : 0;
+        conditional_open(&g_if_state,val != 0);
         return 1;
     }
     if (!strcmp(t0,"%elif")) {
         if (g_ntok<2) die("%elif requires an expression");
-        if (g_if_depth==0) die("%%elif without %%if");
-        if (g_if_stack[g_if_depth-1]==1) g_if_active=0;
-        else if (g_if_stack[g_if_depth-1]==3) { }
-        else { char condition[512]; basm_join_tokens(1,g_ntok,condition,sizeof(condition));
-               long val = (g_ntok>=2) ? parse_condition(condition) : 0; g_if_stack[g_if_depth-1] = val?1:2; g_if_active = val?1:0; }
+        if (g_if_state.depth==0) die("%%elif without %%if");
+        ConditionalFrame *frame=&g_if_state.frame[g_if_state.depth-1];
+        if (frame->else_seen) die("%elif after %else");
+        long val=0;
+        if (frame->parent_active && !frame->matched) {
+            char condition[512]; basm_join_tokens(1,g_ntok,condition,sizeof(condition));
+            val=parse_condition(condition);
+        }
+        conditional_elif(&g_if_state,val != 0);
         return 1;
     }
     if (!strcmp(t0,"%else")) {
         basm_token_arity(1,1);
         if (source_commas()) die("%else takes no operands");
-        if (g_if_depth==0) die("%%else without %%if");
-        if (g_if_stack[g_if_depth-1]==1) g_if_active=0;
-        else if (g_if_stack[g_if_depth-1]==2) g_if_active=1;
+        if (g_if_state.depth==0) die("%%else without %%if");
+        if (g_if_state.frame[g_if_state.depth-1].else_seen) die("duplicate %else");
+        conditional_else(&g_if_state);
         return 1;
     }
     if (!strcmp(t0,"%endif")) {
         basm_token_arity(1,1);
         if (source_commas()) die("%endif takes no operands");
-        if (g_if_depth==0) die("%%endif without %%if");
-        g_if_depth--; g_if_active = (g_if_depth==0) ? 1 : (g_if_stack[g_if_depth-1]!=3);
+        if (g_if_state.depth==0) die("%%endif without %%if");
+        conditional_close(&g_if_state);
         return 1;
     }
     if (!strcmp(t0,"%include")) {
@@ -835,7 +836,7 @@ static void process_source(char *src) {
         /* N08: prove the line limit first, then parse supported complete
          * instruction spans directly from the immutable source. Failed fast
          * attempts emit nothing and retain the ordinary directive/token path. */
-        if(g_if_active && !g_in_struc && g_cur!=SEC_DATA && g_cur!=SEC_RODATA &&
+        if(conditional_active(&g_if_state) && !g_in_struc && g_cur!=SEC_DATA && g_cur!=SEC_RODATA &&
            g_cur!=SEC_BSS && try_fast_instruction(p)){
             if(g_explain)intent_trace_record(trace_section,trace_start,cur_off(),g_line,g_intent_form_current);
             g_ntok=0;
@@ -844,13 +845,13 @@ static void process_source(char *src) {
             continue;
         }
         memcpy(buf, p, len); buf[len] = 0;
-        if (g_target_profile && g_if_active && target_bits_line(buf)) {
+        if (g_target_profile && conditional_active(&g_if_state) && target_bits_line(buf)) {
             g_ntok = 0;
             if (!eol) break;
             p = eol + 1;
             continue;
         }
-        if (g_if_active && handle_global_line(buf)) {
+        if (conditional_active(&g_if_state) && handle_global_line(buf)) {
             g_ntok=0;
             if (!eol) break;
             p=eol+1;
@@ -861,7 +862,7 @@ static void process_source(char *src) {
         /* W04/W06: process only this include frame. A child must never
          * iterate back over its parent's still-active frame or open dead input. */
         if (g_ntok>0 && !strcmp(g_tok[0],"%include")) {
-            if (g_if_active) {
+            if (conditional_active(&g_if_state)) {
                 if(g_explain)die("intent: deferred include has no preprocessor provenance");
                 handle_directive_or_label(buf);
                 int idx=g_inc_depth-1, caller_line=g_line;
@@ -881,7 +882,7 @@ static void process_source(char *src) {
             !strcmp(g_tok[0],"%if") || !strcmp(g_tok[0],"%elif") ||
             !strcmp(g_tok[0],"%else") || !strcmp(g_tok[0],"%endif")));
 
-        if (!g_if_active && !is_cond_directive) {
+        if (!conditional_active(&g_if_state) && !is_cond_directive) {
             /* Skip this line */
         } else {
             int direct_instruction=0;
@@ -982,13 +983,13 @@ static void assemble_pass(char *src) {
     g_deferred_content=0;
     g_layout_contextual_seen=0;
     g_inc_depth = 0;
-    g_if_depth=0; g_if_active=1;
+    memset(&g_if_state,0,sizeof(g_if_state));
     g_in_struc=0; g_istruc_depth=0;
     g_line = 0;
     g_file = "<stdin>";
     expr_cache_reset();
     process_source(src);
-    if (g_if_depth) die("unterminated assembly conditional");
+    if (g_if_state.depth) die("unterminated assembly conditional");
     if (g_in_struc) die("unterminated structure");
     if (g_istruc_depth) die("unterminated istruc");
     /* Cleanup any pending includes */
