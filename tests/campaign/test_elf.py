@@ -24,12 +24,12 @@ COMMANDS = ("secs", "sec", "syms", "relocs", "audit", "notes", "digest", "diff")
 
 
 def elf_object(symbol="exported", *, bss_size=64, text_flags=6, text=b"\0" * 8 + b"\xc3",
-               note=None, note_type=7, duplicate=False, rel=False):
+               note=None, note_type=7, note_name=".note.test", duplicate=False, rel=False):
     """Small independent ELF writer; does not import the assembler implementation."""
     if note is None:
         note = struct.pack("<III", 5, 3, 1) + b"BEAR\0\0\0\0" + b"abc\0"
     names = ("", ".text", ".text" if duplicate else ".bss", ".shstrtab", ".strtab",
-             ".symtab", ".rel.text" if rel else ".rela.text", ".note.test")
+             ".symtab", ".rel.text" if rel else ".rela.text", note_name)
     name_offsets, shstrings = [], bytearray()
     for name in names:
         name_offsets.append(len(shstrings))
@@ -70,6 +70,18 @@ def elf_object(symbol="exported", *, bss_size=64, text_flags=6, text=b"\0" * 8 +
     struct.pack_into("<16sHHIQQQIHHHHHH", blob, 0, ident, 1, 62, 1, 0, 0, shoff,
                      0, 64, 0, 0, 64, len(sections), 3)
     return blob, headers
+
+
+def with_program_header(raw, p_type):
+    """Append one bounded program header without disturbing section storage."""
+    blob = bytearray(raw)
+    while len(blob) % 8:
+        blob.append(0)
+    phoff = len(blob)
+    blob.extend(struct.pack("<IIQQQQQQ", p_type, 0, 0, 0, 0, 0, 0, 0))
+    struct.pack_into("<Q", blob, 32, phoff)
+    struct.pack_into("<HH", blob, 54, 56, 1)
+    return blob
 
 
 class ElfTests(unittest.TestCase):
@@ -298,6 +310,40 @@ class ElfTests(unittest.TestCase):
         a = self.save(raw)
         struct.pack_into("<I", raw, headers[".rel.text"][0] + 44, 2)
         self.assertEqual(self.run_cmd("diff", a, self.save(raw)).returncode, 1)
+
+    def test_15_audit_rejects_dynamic_linking_machinery(self):
+        for p_type in (2, 3):  # PT_DYNAMIC, PT_INTERP
+            with self.subTest(program_header_type=p_type):
+                result = self.run_cmd("audit", self.save(with_program_header(self.raw, p_type)))
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(b"A2", result.stdout)
+
+        names = (".plt.sec", ".iplt", ".igot.plt", ".rela.plt", ".rela.dyn",
+                 ".gnu.version", ".gnu.version_d", ".gnu.version_r")
+        for name in names:
+            with self.subTest(section_name=name):
+                raw, _ = elf_object(note_name=name, note_type=1)
+                result = self.run_cmd("audit", self.save(raw))
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(b"A2", result.stdout)
+
+        for section_type in (5, 6, 19, 0x60000001, 0x6FFFFFF3, 0x6FFFFFF6,
+                             0x6FFFFFF8, 0x6FFFFFFD, 0x6FFFFFFE, 0x6FFFFFFF):
+            with self.subTest(section_type=section_type):
+                raw, _ = elf_object(note_name=".policy-probe", note_type=section_type)
+                result = self.run_cmd("audit", self.save(raw))
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(b"A2", result.stdout)
+
+        dynamic_symbols = self.mutate(self.headers[".symtab"][0] + 4, "I", 11)
+        result = self.run_cmd("audit", self.save(dynamic_symbols))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(b"A2", result.stdout)
+
+        allocated_reloc = self.mutate(self.headers[".rela.text"][0] + 8, "Q", 2)
+        result = self.run_cmd("audit", self.save(allocated_reloc))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(b"A2", result.stdout)
 
 
 if __name__ == "__main__":
