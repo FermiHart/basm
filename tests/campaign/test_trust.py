@@ -114,6 +114,14 @@ def main():
                 command(label + '-elftool', [elftool, 'attest', *strict_flags, '--tool', basm,
                                              *extra, proof], expected)
 
+        def elftool_rejects_unhashable(label, proof, artifact, extra=()):
+            if not elftool:
+                return
+            run = command(label, [elftool, 'attest', *extra, proof], 1)
+            check(label + '-diagnostic', f'cannot hash {artifact}' in run.stdout)
+            check(label + '-result',
+                  'ATTEST RESULT: FAIL' in run.stdout and 'ATTEST OK' not in run.stdout)
+
         def unsigned(wire):
             return wire.split('\nsignature_alg: ', 1)[0] + '\nsignature: unsigned\n'
 
@@ -169,6 +177,7 @@ def main():
 
         source_bytes = src.read_bytes()
         src.unlink()
+        elftool_rejects_unhashable('elftool-default-missing-source', proof, 'source')
         os.mkfifo(src)
         verify('source-fifo-rejected', proof, 1, trusted)
         src.unlink()
@@ -180,8 +189,18 @@ def main():
         verify('source-over-budget-rejected', proof, 1, trusted)
         src.write_bytes(source_bytes)
         object_bytes = obj.read_bytes()
+        obj.unlink()
+        elftool_rejects_unhashable('elftool-default-missing-output', proof, 'output')
+        elftool_rejects_unhashable('elftool-strict-missing-output', proof, 'output',
+                                   ('--strict',))
+        elftool_rejects_unhashable('elftool-trusted-missing-output', proof, 'output',
+                                   ('--trusted-key', trusted))
+        obj.mkdir()
+        elftool_rejects_unhashable('elftool-default-directory-output', proof, 'output')
+        obj.rmdir()
         with obj.open('wb') as f:
             f.truncate(1024 * 1024 * 1024 + 1)
+        elftool_rejects_unhashable('elftool-default-oversized-output', proof, 'output')
         verify('output-over-budget-rejected', proof, 1, trusted)
         obj.write_bytes(object_bytes)
         if elftool:
