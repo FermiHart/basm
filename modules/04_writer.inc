@@ -248,6 +248,7 @@ static const char *g_exec_sign_key = NULL; /* global, not a main local: keeps ma
 #define EXEC_PROOF_BUFSZ 4096
 static uint8_t g_proof_buf[EXEC_PROOF_BUFSZ];
 static int build_exec_proof_note(uint8_t *out, size_t cap);
+static void finalize_exec_proof(FILE *stream, uint64_t proof_off, int proof_len);
 
 /* Uniform section accessors so the ELF writer treats fixed + custom sections
  * identically. Author: F E R M I ∞ H A R T. */
@@ -557,5 +558,9 @@ static void write_elf(FILE *stream) {
 
     free(sym_index_of); free(loc); free(shstr.buf);
     out_finish(f);
+    /* Version 2 binds the completed ET_REL object with only this NOTE payload
+     * normalized away. Finalize after every other byte has reached the owned
+     * temporary, then replace the placeholder before publication. */
+    if (g_exec_proof) finalize_exec_proof(stream,proof_off,proof_len);
     (void)idx_symtab; (void)rela_shidx;
 }

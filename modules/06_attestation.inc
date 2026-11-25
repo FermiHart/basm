@@ -883,17 +883,16 @@ static int publish_basm_attestation(const char *attest_path,const char *src_path
     return rc;
 }
 
-/* W1.2: proof-carrying objects. Serialize the exact emitted section table
- * plus source/tool identity into a NOTE payload. Mirrors write_elf's
- * type/flags mapping one-to-one; any drift fails the offline gate, never
- * silently. Deterministic: hashes and tables only, no time/PID/paths beyond
- * the already-recorded source identity. */
+/* W1.2: proof-carrying objects. Version 2 retains the source-section view and
+ * also signs a hash of the complete emitted ET_REL object with this NOTE's
+ * payload normalized to zeros. Headers, section inventory, symbols, strings,
+ * relocations and padding therefore share one cryptographic boundary. */
 #define EXEC_PROOF_MAGIC 0x54494E50u
-#define EXEC_PROOF_VERSION 1u
+#define EXEC_PROOF_VERSION 2u
 #define EXEC_PROOF_NOTETYPE 0x54494E41u
 #define EXEC_PROOF_NAME "TinaLinux"
 #define EXEC_PROOF_MAXSEC 24
-#define EXEC_PROOF_DESCSZ 1536
+#define EXEC_PROOF_DESCSZ 2320
 
 extern void ed25519_keypair_from_seed(const uint8_t seed[32], uint8_t pk[32], uint8_t sk[64]);
 extern int ed25519_sign(uint8_t sig[64], const uint8_t *msg, uint32_t len, const uint8_t sk[64]);
@@ -950,6 +949,7 @@ typedef struct {
     uint32_t nsec;
     ProofSecEntry sec[EXEC_PROOF_MAXSEC];
     uint8_t sec_hash[EXEC_PROOF_MAXSEC][32];
+    uint8_t object_sha256[32];
     uint8_t pubkey[32], sig[64];
 } ExecProofDesc;
 typedef struct { uint32_t namesz, descsz, type; char name[12]; } ProofNoteHead;
@@ -982,23 +982,63 @@ static int build_exec_proof_note(uint8_t *out, size_t cap){
         if (sec_has_content(sec)) hash_section_bytes(sec,&sc);
         basm_sha_final(&sc,d->sec_hash[i]);
     }
-    memset(d->pubkey,0,32); memset(d->sig,0,64);
-    if (g_exec_proof_signed){
-        /* Publisher key first: the digest covers the final bytes, pub
-         * included (sig field still zero here). Sign-what-you-ship. */
-        uint8_t digest[32], sk[64];
-        ed25519_keypair_from_seed(g_exec_proof_seed,d->pubkey,sk);
-        basm_sha_ctx c; basm_sha_init(&c);
-        basm_sha_update(&c,(const uint8_t*)d,(size_t)((const uint8_t*)d->sig-(const uint8_t*)d));
-        basm_sha_final(&c,digest);
-        if (ed25519_sign(d->sig,digest,32,sk)!=0){ memset(sk,0,sizeof(sk)); die("exec proof: signing failed"); }
-        memset(sk,0,sizeof(sk)); memset(digest,0,sizeof(digest));
-    }
+    /* The writer hashes the completed object and signs this placeholder in a
+     * second pass. Zeroing the complete NOTE payload makes that hash acyclic. */
+    memset(d->object_sha256,0,32); memset(d->pubkey,0,32); memset(d->sig,0,64);
     int dlen=(int)((const uint8_t*)d->sig+64-(const uint8_t*)d);
+    if (dlen!=EXEC_PROOF_DESCSZ) die("exec proof: unsupported descriptor layout");
     if (sizeof(ProofNoteHead)+(size_t)dlen>cap) return -1;
     ProofNoteHead h;
     h.namesz=12; h.descsz=(uint32_t)dlen; h.type=EXEC_PROOF_NOTETYPE;
     memcpy(h.name,EXEC_PROOF_NAME,9); memset(h.name+9,0,3);
     memcpy(out,&h,sizeof(h)); memcpy(out+sizeof(h),d,(size_t)dlen);
     return (int)(sizeof(h)+(size_t)dlen);
+}
+
+/* Hash exactly the completed object while replacing the proof NOTE payload by
+ * zeros. This is the verifier's canonical full-object view, so any post-signing
+ * change to linker-consumed metadata changes object_sha256. */
+static void finalize_exec_proof(FILE *stream, uint64_t proof_off, int proof_len){
+    ExecProofDesc *d=&g_proof_desc;
+    int expected=(int)sizeof(ProofNoteHead)+EXEC_PROOF_DESCSZ;
+    int fd=fileno(stream); struct stat st;
+    if(proof_len!=expected || fd<0 || fstat(fd,&st)!=0 || !S_ISREG(st.st_mode) || st.st_size<0)
+        die("exec proof: cannot inspect completed object");
+    uint64_t size=(uint64_t)st.st_size;
+    if(proof_off>size || (uint64_t)proof_len>size-proof_off)
+        die("exec proof: invalid note bounds");
+    if(lseek(fd,0,SEEK_SET)<0)die("exec proof: cannot rewind object");
+    basm_sha_ctx c; basm_sha_init(&c); uint8_t buf[65536];
+    uint64_t pos=0,proof_end=proof_off+(uint64_t)proof_len;
+    while(pos<size){
+        size_t want=size-pos>sizeof(buf)?sizeof(buf):(size_t)(size-pos);
+        long got; do{got=(long)read(fd,buf,want);}while(got<0 && errno==EINTR);
+        if(got<=0)die("exec proof: cannot hash completed object");
+        uint64_t end=pos+(uint64_t)got;
+        if(pos<proof_end && end>proof_off){
+            uint64_t first=pos>proof_off?pos:proof_off;
+            uint64_t last=end<proof_end?end:proof_end;
+            memset(buf+(size_t)(first-pos),0,(size_t)(last-first));
+        }
+        basm_sha_update(&c,buf,(size_t)got); pos=end;
+    }
+    basm_sha_final(&c,d->object_sha256);
+    if(g_exec_proof_signed){
+        uint8_t digest[32],sk[64];
+        ed25519_keypair_from_seed(g_exec_proof_seed,d->pubkey,sk);
+        basm_sha_init(&c);
+        basm_sha_update(&c,(const uint8_t*)d,(size_t)((const uint8_t*)d->sig-(const uint8_t*)d));
+        basm_sha_final(&c,digest);
+        if(ed25519_sign(d->sig,digest,32,sk)!=0){basm_secret_clear(sk,sizeof(sk));die("exec proof: signing failed");}
+        basm_secret_clear(sk,sizeof(sk)); basm_secret_clear(digest,sizeof(digest));
+    }
+    memcpy(g_proof_buf+sizeof(ProofNoteHead),d,EXEC_PROOF_DESCSZ);
+    if(lseek(fd,(off_t)proof_off,SEEK_SET)<0)die("exec proof: cannot seek to note");
+    size_t done=0;
+    while(done<(size_t)proof_len){
+        long wrote; do{wrote=(long)write(fd,g_proof_buf+done,(size_t)proof_len-done);}while(wrote<0 && errno==EINTR);
+        if(wrote<=0)die("exec proof: cannot finalize note");
+        done+=(size_t)wrote;
+    }
+    if(lseek(fd,(off_t)size,SEEK_SET)<0)die("exec proof: cannot restore object position");
 }

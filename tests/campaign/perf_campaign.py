@@ -205,7 +205,7 @@ def elf_sections(data):
         raise ValueError("section names out of range")
     names = data[strings[4]:strings[4]+strings[5]]
     result = {}
-    for row in rows[1:]:
+    for index, row in enumerate(rows[1:], 1):
         name, kind, flags, _, offset, size, _, _, alignment, _ = row
         end = names.find(b"\x00", name)
         if name >= len(names) or end < 0 or (kind != 8 and offset + size > len(data)):
@@ -214,7 +214,8 @@ def elf_sections(data):
         if text in result:
             raise ValueError("duplicate section name")
         result[text] = {"type": kind, "flags": flags, "offset": offset, "size": size,
-                        "align": alignment, "data": b"" if kind == 8 else data[offset:offset+size]}
+                        "align": alignment, "header_offset": shoff + index*64,
+                        "data": b"" if kind == 8 else data[offset:offset+size]}
     return result
 
 def validate_exec_note(data, tool, source, signer):
@@ -226,12 +227,12 @@ def validate_exec_note(data, tool, source, signer):
     if len(payload) < 24:
         raise ValueError("truncated proof note")
     namesz, descsz, kind = struct.unpack_from("<III", payload)
-    if (namesz, descsz, kind) != (12, 2288, 0x54494e41) or len(payload) != 24 + descsz:
-        raise ValueError("unsupported exec proof v1 representation")
+    if (namesz, descsz, kind) != (12, 2320, 0x54494e41) or len(payload) != 24 + descsz:
+        raise ValueError("unsupported exec proof v2 representation")
     if payload[12:24] != b"TinaLinux\x00\x00\x00":
         raise ValueError("incorrect proof note name")
     desc = payload[24:]
-    if struct.unpack_from("<II", desc) != (0x54494e50, 1):
+    if struct.unpack_from("<II", desc) != (0x54494e50, 2):
         raise ValueError("incorrect exec proof framing")
     if desc[8:40] != hashlib.sha256(source.read_bytes()).digest() or desc[40:72] != hashlib.sha256(tool.read_bytes()).digest():
         raise ValueError("exec proof does not bind tool/source")
@@ -260,11 +261,36 @@ def validate_exec_note(data, tool, source, signer):
                      if name not in (".note.TinaProof", ".symtab", ".strtab", ".shstrtab") and section["type"] != 4}
     if declared != content_names:
         raise ValueError("exec proof does not cover every source section")
-    if desc[2192:2224].hex() != signer:
-        raise ValueError("exec proof signer differs from requested sidecar signer")
     normalized = bytearray(data)
     normalized[note["offset"]:note["offset"]+note["size"]] = b"\x00" * note["size"]
-    return bytes(normalized), desc[2192:2224].hex(), hashlib.sha256(desc[:2224]).hexdigest(), desc[2224:2288].hex()
+    if desc[2192:2224] != hashlib.sha256(normalized).digest():
+        raise ValueError("exec proof whole-object digest differs")
+    if desc[2224:2256].hex() != signer:
+        raise ValueError("exec proof signer differs from requested sidecar signer")
+    return bytes(normalized), desc[2224:2256].hex(), hashlib.sha256(desc[:2256]).hexdigest(), desc[2256:2320].hex()
+
+def validate_exec_note_mutations(data, tool, source, signer):
+    """Every linker-visible metadata class must invalidate the version 2 proof."""
+    sections = elf_sections(data)
+    symtab, strtab = sections[".symtab"], sections[".strtab"]
+    relocation = next(section for section in sections.values() if section["type"] == 4)
+    mutations = {
+        "elf-header": 48,
+        "section-header": symtab["header_offset"] + 40,
+        "symbol-definition": symtab["offset"] + symtab["size"] - 16,
+        "symbol-name": strtab["offset"] + strtab["size"] - 2,
+        "relocation-offset": relocation["offset"],
+        "relocation-symbol-type": relocation["offset"] + 8,
+        "relocation-addend": relocation["offset"] + 16,
+    }
+    for label, offset in mutations.items():
+        changed = bytearray(data)
+        changed[offset] ^= 1
+        try:
+            validate_exec_note(bytes(changed), tool, source, signer)
+        except ValueError:
+            continue
+        raise ValueError("exec proof accepted mutated " + label)
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
