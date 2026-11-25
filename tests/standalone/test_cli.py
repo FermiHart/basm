@@ -187,6 +187,65 @@ class CliContract(unittest.TestCase):
                       "-f", "bin", "-o", "out.bin", "source.basm")
         self.assertEqual((self.directory / "out.bin").read_bytes(), b"\x07\x08")
 
+    def test_relative_dependencies_follow_documented_search_order(self):
+        source_directory = self.directory / "trusted-source"
+        working_directory = self.directory / "working"
+        include_directory = self.directory / "includes"
+        for directory in (source_directory, working_directory, include_directory):
+            directory.mkdir()
+        source = source_directory / "source.basm"
+        source.write_text('%include "value.inc"\nsection .data\ndb VALUE\nincbin "payload.bin"\n',
+                          encoding="utf-8")
+        candidates = (
+            (source_directory, "0x11", b"\x12"),
+            (working_directory, "0x21", b"\x22"),
+            (include_directory, "0x31", b"\x32"),
+        )
+        for directory, value, payload in candidates:
+            (directory / "value.inc").write_text(f"%define VALUE {value}\n", encoding="utf-8")
+            (directory / "payload.bin").write_bytes(payload)
+
+        def assemble(name):
+            output = working_directory / name
+            result = subprocess.run(
+                [str(self.binary), "-I", str(include_directory), "-f", "bin",
+                 "-o", str(output), str(source)],
+                cwd=working_directory, capture_output=True, text=True, timeout=10,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            return output.read_bytes()
+
+        self.assertEqual(assemble("source-wins.bin"), b"\x11\x12")
+        (source_directory / "value.inc").unlink()
+        (source_directory / "payload.bin").unlink()
+        self.assertEqual(assemble("working-wins.bin"), b"\x21\x22")
+        (working_directory / "value.inc").unlink()
+        (working_directory / "payload.bin").unlink()
+        self.assertEqual(assemble("include-wins.bin"), b"\x31\x32")
+
+    def test_nested_include_keeps_top_level_source_base(self):
+        source_directory = self.directory / "trusted-source"
+        working_directory = self.directory / "working"
+        include_directory = self.directory / "includes"
+        for directory in (source_directory, working_directory, include_directory):
+            directory.mkdir()
+        source = source_directory / "source.basm"
+        source.write_text('%include "outer.inc"\n', encoding="utf-8")
+        (include_directory / "outer.inc").write_text(
+            '%include "leaf.inc"\nsection .data\ndb NESTED_VALUE\n', encoding="utf-8")
+        (source_directory / "leaf.inc").write_text(
+            "%define NESTED_VALUE 0x41\n", encoding="utf-8")
+        (include_directory / "leaf.inc").write_text(
+            "%define NESTED_VALUE 0x42\n", encoding="utf-8")
+        output = working_directory / "nested.bin"
+        result = subprocess.run(
+            [str(self.binary), "-I", str(include_directory), "-f", "bin",
+             "-o", str(output), str(source)],
+            cwd=working_directory, capture_output=True, text=True, timeout=10,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(output.read_bytes(), b"\x41")
+
     def test_object_cannot_replace_source_or_its_alias(self):
         source = self.directory / "source.basm"
         os.link(source, self.directory / "hardlink.o")

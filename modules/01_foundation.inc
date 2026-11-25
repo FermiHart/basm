@@ -101,16 +101,25 @@ static FILE *basm_open_regular(const char *path) {
 static FILE *incbin_open(const char *fn) {
     char path[1024];
     g_last_open_path[0]=0;
-    FILE *bf = basm_open_regular(fn);      /* as given (absolute or CWD-relative) */
-    if (bf) {
+    FILE *bf;
+    if (fn[0]=='/') {                     /* absolute names are already resolved */
+        bf = basm_open_regular(fn);
+        if (!bf) return NULL;
         if(strlen(fn)>=sizeof(g_last_open_path)){fclose(bf);die("include path too long");}
         memcpy(g_last_open_path,fn,strlen(fn)+1);
         return bf;
     }
-    if (g_srcdir[0]) {                    /* relative to the source file's dir */
-        int n=snprintf(path, sizeof(path), "%s/%s", g_srcdir, fn);
+    if (g_srcdir[0]) {                    /* relative to the top-level source dir */
+        const char *separator=g_srcdir[strlen(g_srcdir)-1]=='/' ? "" : "/";
+        int n=snprintf(path, sizeof(path), "%s%s%s", g_srcdir, separator, fn);
         if(n<0 || n>=(int)sizeof(path))die("include path too long");
         bf = basm_open_regular(path); if (bf) { memcpy(g_last_open_path,path,strlen(path)+1); return bf; }
+    }
+    bf = basm_open_regular(fn);            /* current working directory */
+    if (bf) {
+        if(strlen(fn)>=sizeof(g_last_open_path)){fclose(bf);die("include path too long");}
+        memcpy(g_last_open_path,fn,strlen(fn)+1);
+        return bf;
     }
     for (int i=0;i<g_nincpaths;i++) {     /* -I search paths */
         int n=snprintf(path, sizeof(path), "%s/%s", g_incpaths[i], fn);
